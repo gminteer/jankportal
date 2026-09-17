@@ -97,8 +97,6 @@ class ActionData(GObject.Object):
             return ""
         assert isinstance(self._action["status_script"], str)
         s = self._action["status_script"].split()
-        if not s:
-            return ""
 
         try:
             result = subprocess.run(s, capture_output=True, text=True, check=True)
