@@ -3,17 +3,34 @@ import json
 import subprocess
 import sys
 
+from typing import Any, TypedDict
+
+from app import JankPortalWindow
+
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Gio, GObject, Gtk, Adw
 
 RO = GObject.PARAM_READABLE
 
+DeploymentType = TypedDict(
+    "DeploymentType",
+    {
+        "container-image-reference": str,
+        "version": str,
+        "pinned": bool,
+        "booted": bool,
+        "staged": bool,
+        "packages": list[str],
+        "requested-local-packages": list[str],
+    },
+)
+
 
 class DeploymentData(GObject.Object):
     __gtype_name__ = "DeploymentData"
 
-    def __init__(self, index: int, deployment: dict, **kwargs):
+    def __init__(self, index: int, deployment: DeploymentType, **kwargs: Any):
         super().__init__(**kwargs)
         self._data = deployment
         self._index = index
@@ -52,7 +69,7 @@ class DeploymentData(GObject.Object):
 
 
 class OSTreeUI(object):
-    def __init__(self, window):
+    def __init__(self, window: JankPortalWindow):
         self.window = window
         self.model = self._create_model()
         container = Gtk.Box(
@@ -100,7 +117,7 @@ class OSTreeUI(object):
             print(f"rpm-ostree error: {error.stderr}")
             sys.exit(1)
 
-    def create_row(self, deployment):
+    def create_row(self, deployment: DeploymentData):
         subtitle = (
             f"{deployment.version} ({"not " if not deployment.pinned else ""}pinned)"
         )
@@ -160,9 +177,9 @@ class OSTreeUI(object):
             row.add_row(overlay_container)
         return row
 
-    def remove_overlay(self, row, deployment, overlay):
+    def remove_overlay(self, button: Gtk.Button, deployment: str, overlay: str):
         print(f"I should remove {overlay} in deployment {deployment}")
 
-    def toggle_ostree_pin(self, row, gparam_spec, index):
+    def toggle_ostree_pin(self, row: Adw.SwitchRow, gparam_spec: Any, index: int):
         action = "pin" if row.props.active else "unpin"
         print(f"I should {action} index {index}")

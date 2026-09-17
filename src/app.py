@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 
+from typing import Any, Optional
+
 from ostree import OSTreeUI
 from yafti import YaftiUI
 
@@ -42,17 +44,19 @@ class JankPortalWindow(Adw.ApplicationWindow):
     bottom_sheet = Gtk.Template.Child()
     stack = Gtk.Template.Child()
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
         self.vte.connect("child-exited", self.on_child_exited)
 
-    def on_child_exited(self, terminal, status):
-        self.bottom_sheet.props.open = not self.bottom_sheet.props.open
+    def on_child_exited(self, terminal: Vte.Terminal, status: int):
+        self.bottom_sheet.props.open = False
 
-    def on_spawn_complete(self, terminal, pid, error):
+    def on_spawn_complete(
+        self, terminal: Optional[Vte.Terminal], pid: int, error: Optional[GLib.Error]
+    ):
         pass
 
-    def command_runner(self, script):
+    def command_runner(self, script: str):
         self.bottom_sheet.props.open = True
         self.vte.spawn_async(
             pty_flags=Vte.PtyFlags.DEFAULT,

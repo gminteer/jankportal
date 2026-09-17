@@ -3,6 +3,10 @@ import subprocess
 import sys
 import yaml
 
+from typing import Any, Optional, TypedDict
+
+from app import JankPortalWindow
+
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Gio, GObject, Gtk, Adw
@@ -12,10 +16,16 @@ from gi.repository import Gio, GObject, Gtk, Adw
 RO = GObject.PARAM_READABLE
 
 
+class OptionType(TypedDict):
+    id: str
+    label: str
+    script: str
+
+
 class OptionData(GObject.Object):
     __gtype_name__ = "OptionData"
 
-    def __init__(self, option, **kwargs):
+    def __init__(self, option: OptionType, **kwargs: Any):
         super().__init__(**kwargs)
         self._option = option
 
@@ -32,16 +42,28 @@ class OptionData(GObject.Object):
         return self._option["script"]
 
 
+class ActionType(TypedDict):
+    id: str
+    title: str
+    description: str
+    script: Optional[str]
+    default: bool
+    options: Optional[list[OptionType]]
+    status_script: Optional[str]
+
+
 class ActionData(GObject.Object):
     __gtype_name__ = "ActionData"
 
-    def __init__(self, action, **kwargs):
+    def __init__(self, action: ActionType, **kwargs: Any):
         super().__init__(**kwargs)
         self._action = action
-        if self._action.get("options", ""):
-            self._options = Gio.ListStore(item_type=OptionData)
-            for option in self._action["options"]:
-                self._options.append(OptionData(option))
+        if "options" not in action.keys():
+            return
+        assert isinstance(action["options"], list)
+        self._options = Gio.ListStore(item_type=OptionData)
+        for option in action["options"]:
+            self._options.append(OptionData(option))
 
     @GObject.Property(type=str, default="", flags=RO)
     def id(self):
@@ -57,7 +79,7 @@ class ActionData(GObject.Object):
 
     @GObject.Property(type=str, default="", flags=RO)
     def script(self):
-        return self._action["script"]
+        return self._action.get("script", "")
 
     @GObject.Property(type=bool, default=False, flags=RO)
     def default(self):
@@ -72,7 +94,10 @@ class ActionData(GObject.Object):
 
     @GObject.Property(type=str, default="", flags=RO)
     def status(self):
-        s = self._action.get("status_script", "").split()
+        if "status_script" not in self._action.keys():
+            return ""
+        assert isinstance(self._action["status_script"], str)
+        s = self._action["status_script"].split()
         if not s:
             return ""
 
@@ -97,7 +122,7 @@ class ActionData(GObject.Object):
 class PageData(GObject.Object):
     __gtype_name__ = "PageData"
 
-    def __init__(self, page, **kwargs):
+    def __init__(self, page: dict[str, Any], **kwargs: Any):
         super().__init__(**kwargs)
         self._page = page
         actions = Gio.ListStore(item_type=ActionData)
@@ -123,7 +148,7 @@ class PageData(GObject.Object):
 
 
 class YaftiUI(object):
-    def __init__(self, window):
+    def __init__(self, window: JankPortalWindow):
         self.window = window
         self.model = self._create_model()
         for screen in self.model:
@@ -148,10 +173,10 @@ class YaftiUI(object):
             )
             window.stack.add_titled(child=scrollable, title=screen.title, name=name)
 
-    def _create_model(self, file_name="/usr/share/yafti/yafti.yml"):
+    def _create_model(self, file_name: str = "/usr/share/yafti/yafti.yml"):
         try:
             with open(file_name, "r") as file:
-                yafti = yaml.safe_load(file) or {}
+                yafti: dict[str, Any] = yaml.safe_load(file) or {}
                 if not yafti:
                     print("Error parsing yafti", file=sys.stderr)
                     sys.exit(1)
@@ -166,7 +191,7 @@ class YaftiUI(object):
             print(f"yafti scripts file not found at {file_name}", file=sys.stderr)
             sys.exit(1)
 
-    def create_row(self, action):
+    def create_row(self, action: ActionData):
         title = action.title.replace("&", "&amp;")
         status = action.status
         title = Adw.ActionRow(title=title, subtitle=action.description)
@@ -199,7 +224,9 @@ class YaftiUI(object):
         row.append(actions)
         return row
 
-    def run_task(self, button, action, option, script):
+    def run_task(
+        self, button: Gtk.Button, action: str, option: Optional[str], script: str
+    ):
         print(
             f"Action {action} {f" (option {option}) " if option else ""}says I should run {script}"
         )
