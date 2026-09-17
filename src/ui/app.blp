@@ -1,0 +1,45 @@
+using Gtk 4.0;
+using Adw 1;
+using Vte 3.91;
+
+template $JankPortalWindow : Adw.ApplicationWindow {
+    default-width: 1200;
+    default-height: 600;
+    title: _("Jank Portal");
+
+    content: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    Adw.BottomSheet bottom_sheet {
+        open: false;
+        show-drag-handle: false;
+
+        content: Adw.OverlaySplitView {
+            sidebar: Adw.ViewSwitcherSidebar stack_switcher {
+                stack: stack;
+            };
+            content: Adw.ViewStack stack {
+                vhomogeneous: false;
+            };
+        };
+
+        sheet: ScrolledWindow {
+            propagate-natural-height: true;
+            child: Adw.ClampScrollable {
+                orientation: vertical;
+                unit: sp;
+                maximum-size: 300;
+                vexpand: true;
+                hexpand: true;
+                Vte.Terminal vte {
+                vexpand: true;
+                hexpand: true;
+                }
+            };
+        };
+        }
+
+    };
+
+}
