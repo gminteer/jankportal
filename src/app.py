@@ -14,7 +14,7 @@ gi.require_version("Vte", "3.91")
 
 from gi.repository import Gdk, Gio, GLib, GObject, Gtk, Adw, Vte
 
-# Wait until Vte resolves as GObjects that exist
+# Wait until Vte resolves as a GObject that exists
 GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
 
 

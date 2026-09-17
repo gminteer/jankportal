@@ -3,15 +3,14 @@ import subprocess
 import sys
 import yaml
 
-from typing import Any, Optional, TypedDict
+from typing import Any, Optional, TypedDict, TYPE_CHECKING
 
-from app import JankPortalWindow
+if TYPE_CHECKING:
+    from app import JankPortalWindow
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Gio, GObject, Gtk, Adw
-
-# from app import vte
 
 RO = GObject.PARAM_READABLE
 

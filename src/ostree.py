@@ -3,9 +3,10 @@ import json
 import subprocess
 import sys
 
-from typing import Any, TypedDict
+from typing import Any, TypedDict, TYPE_CHECKING
 
-from app import JankPortalWindow
+if TYPE_CHECKING:
+    from app import JankPortalWindow
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
