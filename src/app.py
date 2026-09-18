@@ -40,24 +40,46 @@ def compile_blp(blp: str):
 @Gtk.Template(string=compile_blp("src/ui/app.blp"))
 class JankPortalWindow(Adw.ApplicationWindow):
     __gtype_name__ = "JankPortalWindow"
-    vte = Gtk.Template.Child()
-    bottom_sheet = Gtk.Template.Child()
-    stack = Gtk.Template.Child()
+    vte: Vte.Terminal = Gtk.Template.Child()
+    bottom_sheet: Adw.BottomSheet = Gtk.Template.Child()
+    stack: Adw.ViewStack = Gtk.Template.Child()
+    command_label: Gtk.Label = Gtk.Template.Child()
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
         self.vte.connect("child-exited", self.on_child_exited)
 
     def on_child_exited(self, terminal: Vte.Terminal, status: int):
-        self.bottom_sheet.props.open = False
+        DELAY = 3
+        self.command_label.props.label = (
+            f"[Exited], terminal will hide in {DELAY} seconds"
+        )
+
+        def delayed_close():
+            self.bottom_sheet.props.open = False
+            self.vte.disconnect_by_func(self.on_contents_changed)
+            return GLib.SOURCE_REMOVE
+
+        GLib.timeout_add_seconds(DELAY, delayed_close)
+        if status != 0:
+            print(f"Command returned status: {status}")
 
     def on_spawn_complete(
         self, terminal: Optional[Vte.Terminal], pid: int, error: Optional[GLib.Error]
     ):
-        pass
+        if error:
+            print(f"error: {error.message}")
+            return
+
+        print(f"Command runner spawned (pid {pid})")
+        self.vte.connect("contents-changed", self.on_contents_changed)
+
+    def on_contents_changed(self, terminal: Optional[Vte.Terminal]):
+        self.bottom_sheet.props.open = True
+        self.vte.grab_focus()
 
     def command_runner(self, script: str):
-        self.bottom_sheet.props.open = True
+        self.command_label.props.label = script
         self.vte.spawn_async(
             pty_flags=Vte.PtyFlags.DEFAULT,
             working_directory=os.environ.get("HOME"),

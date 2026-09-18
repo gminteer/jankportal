@@ -18,3 +18,7 @@
 .action-button-group {
     padding: 0.4rem;
 }
+
+.font-mono {
+    font-family: monospace;
+}
