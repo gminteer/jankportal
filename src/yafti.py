@@ -1,16 +1,17 @@
-import gi
 import subprocess
 import sys
-import yaml
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
-from typing import Any, Optional, TypedDict, TYPE_CHECKING
+import gi
+import yaml
 
 if TYPE_CHECKING:
     from app import JankPortalWindow
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Gio, GObject, Gtk, Adw
+from gi.repository import Adw, Gio, GObject, Gtk  # noqa: E402
 
 RO = GObject.PARAM_READABLE
 
@@ -45,10 +46,10 @@ class ActionType(TypedDict):
     id: str
     title: str
     description: str
-    script: Optional[str]
+    script: NotRequired[str]
     default: bool
-    options: Optional[list[OptionType]]
-    status_script: Optional[str]
+    options: NotRequired[list[OptionType]]
+    status_script: NotRequired[str]
 
 
 class ActionData(GObject.Object):
@@ -57,9 +58,9 @@ class ActionData(GObject.Object):
     def __init__(self, action: ActionType, **kwargs: Any):
         super().__init__(**kwargs)
         self._action = action
-        if "options" not in action.keys():
+        self._status = ""
+        if "options" not in action:
             return
-        assert isinstance(action["options"], list)
         self._options = Gio.ListStore(item_type=OptionData)
         for option in action["options"]:
             self._options.append(OptionData(option))
@@ -93,27 +94,38 @@ class ActionData(GObject.Object):
 
     @GObject.Property(type=str, default="", flags=RO)
     def status(self):
-        if "status_script" not in self._action.keys():
+        if "status_script" not in self._action:
             return ""
-        assert isinstance(self._action["status_script"], str)
+        if self._status:
+            return self._status
         s = self._action["status_script"].split()
 
         try:
             result = subprocess.run(s, capture_output=True, text=True, check=True)
-            return result.stdout.strip()
+            self._status = result.stdout.strip()
+            return self._status
 
         except FileNotFoundError:
             print(
-                f"status_script for command '{self._action["id"]}' not found: '{s}'\n(command is '{s}')",
+                (
+                    f"status_script for command '{self._action['id']}' not found: '{s}'"
+                    f"\n(command is '{s}')"
+                ),
                 file=sys.stderr,
             )
-            return "unknown"
+            self._status = "script_failed"
+            return self._status
 
         except subprocess.CalledProcessError as error:
             print(
-                f"status_script for command '{self._action["id"]}' returned error: {error.stderr}\n(command is '{s}')"
+                (
+                    f"status_script for command '{self._action['id']}' "
+                    f"returned error: {error.stderr}\n(command is '{s}')"
+                ),
+                file=sys.stderr,
             )
-            return "unknown"
+            self._status = "script_failed"
+            return self._status
 
 
 class PageData(GObject.Object):
@@ -144,7 +156,7 @@ class PageData(GObject.Object):
         return self._actions
 
 
-class YaftiUI(object):
+class YaftiUI:
     def __init__(self, window: JankPortalWindow):
         self.window = window
         self.model = self._create_model()
@@ -172,7 +184,8 @@ class YaftiUI(object):
 
     def _create_model(self, file_name: str = "/usr/share/yafti/yafti.yml"):
         try:
-            with open(file_name, "r") as file:
+            path = Path(file_name)
+            with path.open() as file:
                 yafti: dict[str, Any] = yaml.safe_load(file) or {}
                 if not yafti:
                     print("Error parsing yafti", file=sys.stderr)
@@ -222,9 +235,10 @@ class YaftiUI(object):
         return row
 
     def run_task(
-        self, button: Gtk.Button, action: str, option: Optional[str], script: str
+        self, button: Gtk.Button, action: str, option: str | None, script: str
     ):
         print(
-            f"Action {action} {f" (option {option}) " if option else ""}says I should run {script}"
+            f"Action {action} {f' (option {option}) ' if option else ''}"
+            f"says I should run {script}"
         )
         self.window.command_runner(script)

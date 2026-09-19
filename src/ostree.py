@@ -1,16 +1,16 @@
-import gi
 import json
 import subprocess
 import sys
+from typing import TYPE_CHECKING, Any, TypedDict
 
-from typing import Any, TypedDict, TYPE_CHECKING
+import gi
 
 if TYPE_CHECKING:
     from app import JankPortalWindow
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Gio, GObject, Gtk, Adw
+from gi.repository import Adw, Gio, GObject, Gtk  # noqa: E402
 
 RO = GObject.PARAM_READABLE
 
@@ -69,7 +69,7 @@ class DeploymentData(GObject.Object):
         return self._overlays
 
 
-class OSTreeUI(object):
+class OSTreeUI:
     def __init__(self, window: JankPortalWindow):
         self.window = window
         self.model = self._create_model()
@@ -120,7 +120,7 @@ class OSTreeUI(object):
 
     def create_row(self, deployment: DeploymentData):
         subtitle = (
-            f"{deployment.version} ({"not " if not deployment.pinned else ""}pinned)"
+            f"{deployment.version} ({'not ' if not deployment.pinned else ''}pinned)"
         )
         if len(deployment.overlays) > 0:
             subtitle += f" ({len(deployment.overlays)} overlaid packages)"

@@ -1,9 +1,9 @@
-import gi
 import os
 import subprocess
 import sys
+from typing import Any
 
-from typing import Any, Optional
+import gi
 
 from ostree import OSTreeUI
 from yafti import YaftiUI
@@ -12,7 +12,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 gi.require_version("Vte", "3.91")
 
-from gi.repository import Gdk, Gio, GLib, GObject, Gtk, Adw, Vte
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Vte  # noqa: E402
 
 # Wait until Vte resolves as a GObject that exists
 GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
@@ -44,10 +44,13 @@ class JankPortalWindow(Adw.ApplicationWindow):
     bottom_sheet: Adw.BottomSheet = Gtk.Template.Child()
     stack: Adw.ViewStack = Gtk.Template.Child()
     command_label: Gtk.Label = Gtk.Template.Child()
+    search_bar: Gtk.SearchBar = Gtk.Template.Child()
+    search_entry: Gtk.SearchEntry = Gtk.Template.Child()
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
         self.vte.connect("child-exited", self.on_child_exited)
+        self.search_entry.set_key_capture_widget(self)
 
     def on_child_exited(self, terminal: Vte.Terminal, status: int):
         DELAY = 3
@@ -65,7 +68,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
             print(f"Command returned status: {status}")
 
     def on_spawn_complete(
-        self, terminal: Optional[Vte.Terminal], pid: int, error: Optional[GLib.Error]
+        self, terminal: Vte.Terminal | None, pid: int, error: GLib.Error | None
     ):
         if error:
             print(f"error: {error.message}")
@@ -74,7 +77,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
         print(f"Command runner spawned (pid {pid})")
         self.vte.connect("contents-changed", self.on_contents_changed)
 
-    def on_contents_changed(self, terminal: Optional[Vte.Terminal]):
+    def on_contents_changed(self, terminal: Vte.Terminal | None):
         self.bottom_sheet.props.open = True
         self.vte.grab_focus()
 
@@ -97,10 +100,11 @@ class JankPortalWindow(Adw.ApplicationWindow):
 
 
 class JankPortalApp(Adw.Application):
-    def __init__(self):
+    def __init__(self, **kwargs: Any):
         super().__init__(
             application_id="com.github.gminteer.jankportal",
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
+            **kwargs,
         )
 
     def do_activate(self):
