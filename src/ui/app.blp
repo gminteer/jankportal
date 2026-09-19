@@ -9,7 +9,20 @@ template $JankPortalWindow : Adw.ApplicationWindow {
 
     content: Adw.ToolbarView {
         [top]
-        Adw.HeaderBar {}
+        Adw.HeaderBar {
+            [start]
+            ToggleButton search_button {
+              icon-name: "edit-find-symbolic";
+              tooltip-text: _("Search");
+            }
+        }
+        [top]
+        SearchBar search_bar {
+            search-mode-enabled: bind search_button.active bidirectional;
+            child: SearchEntry search_entry {
+            placeholder-text: _("Search actions…");
+            };
+        }
 
         Adw.BottomSheet bottom_sheet {
             open: false;

@@ -160,7 +160,36 @@ class YaftiUI:
     def __init__(self, window: JankPortalWindow):
         self.window = window
         self.model = self._create_model()
+
+        self.search_text = ""
+        self.window.search_entry.connect("search-changed", self.on_search_changed)
+        self.custom_filter = Gtk.CustomFilter()
+        self.custom_filter.set_filter_func(self.filter)
+        all_actions = Gio.ListStore(item_type=ActionData)
+        filtered_model = Gtk.FilterListModel.new(all_actions, self.custom_filter)
+        omni_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        omni_list.add_css_class("boxed-list")
+        omni_list.add_css_class("root-list")
+        omni_list.bind_model(filtered_model, self.create_row)
+        omni_scroll = Gtk.ScrolledWindow(
+            vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+            propagate_natural_height=True,
+            child=omni_list,
+        )
+        self.search = window.stack.add_titled(
+            child=omni_scroll, title="Search Results", name="search"
+        )
+        self.search.props.visible = False
+
         for screen in self.model:
+            all_actions.splice(
+                all_actions.get_n_items(),
+                0,
+                [
+                    screen.actions.get_item(i)
+                    for i in range(screen.actions.get_n_items())
+                ],
+            )
             container = Gtk.Box(
                 orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.START
             )
@@ -181,6 +210,25 @@ class YaftiUI:
                 child=container,
             )
             window.stack.add_titled(child=scrollable, title=screen.title, name=name)
+
+    def on_search_changed(self, entry: Gtk.SearchEntry):
+        self.window.search_bar.props.search_mode_enabled = True
+        self.search_text = entry.props.text.strip().lower()
+        self.custom_filter.changed(Gtk.FilterChange.DIFFERENT)
+        if self.search_text:
+            self.search.props.visible = True
+            self.window.stack.props.visible_child_name = "search"
+        else:
+            self.search.props.visible = False
+
+    def filter(self, item: ActionData):
+        if not self.search_text:
+            return True
+
+        return (
+            self.search_text in item.title.lower()
+            or self.search_text in item.description.lower()
+        )
 
     def _create_model(self, file_name: str = "/usr/share/yafti/yafti.yml"):
         try:
