@@ -19,6 +19,15 @@ GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
 
 
 def compile_blp(blp: str):
+    """Compile GTK Blueprint
+
+    (runs blueprint-compiler in a subprocess)
+
+    :param blp: Blueprint filename
+    :type blp: str
+    :return: XML UI template
+    :rtype: str
+    """
     try:
         result = subprocess.run(
             ["blueprint-compiler", "compile", blp],
@@ -39,6 +48,8 @@ def compile_blp(blp: str):
 
 @Gtk.Template(string=compile_blp("src/ui/app.blp"))
 class JankPortalWindow(Adw.ApplicationWindow):
+    """Main window for Jank Portal"""
+
     __gtype_name__ = "JankPortalWindow"
     vte: Vte.Terminal = Gtk.Template.Child()
     bottom_sheet: Adw.BottomSheet = Gtk.Template.Child()
@@ -53,11 +64,14 @@ class JankPortalWindow(Adw.ApplicationWindow):
         self.search_entry.set_key_capture_widget(self)
 
     def on_child_exited(self, terminal: Vte.Terminal, status: int):
+        """Delay, then hide terminal window after script exit"""
+
         DELAY = 3
         self.command_label.props.label = (
             f"[Exited], terminal will hide in {DELAY} seconds"
         )
 
+        # Hide bottom sheet, unwire bottom sheet opener
         def delayed_close():
             self.bottom_sheet.props.open = False
             self.vte.disconnect_by_func(self.on_contents_changed)
@@ -70,6 +84,8 @@ class JankPortalWindow(Adw.ApplicationWindow):
     def on_spawn_complete(
         self, terminal: Vte.Terminal | None, pid: int, error: GLib.Error | None
     ):
+        """Wire up VTE contents-changed signal after script is spawned"""
+
         if error:
             print(f"error: {error.message}")
             return
@@ -78,10 +94,14 @@ class JankPortalWindow(Adw.ApplicationWindow):
         self.vte.connect("contents-changed", self.on_contents_changed)
 
     def on_contents_changed(self, terminal: Vte.Terminal | None):
+        """Show terminal widget if script has output anything"""
+
         self.bottom_sheet.props.open = True
         self.vte.grab_focus()
 
     def command_runner(self, script: str):
+        """Pass script to terminal widget"""
+
         self.command_label.props.label = script
         self.vte.spawn_async(
             pty_flags=Vte.PtyFlags.DEFAULT,
@@ -95,11 +115,15 @@ class JankPortalWindow(Adw.ApplicationWindow):
         )
 
     def append_components(self):
+        """Add ViewStackPages to main window"""
+
         self.yafti_ui = YaftiUI(self)
         self.ostree_ui = OSTreeUI(self)
 
 
 class JankPortalApp(Adw.Application):
+    """App class for Jank Portal"""
+
     def __init__(self, **kwargs: Any):
         super().__init__(
             application_id="com.github.gminteer.jankportal",
@@ -108,6 +132,8 @@ class JankPortalApp(Adw.Application):
         )
 
     def do_activate(self):
+        """Load CSS and main window, show main window"""
+
         css = Gtk.CssProvider()
         css.load_from_path("src/ui/app.css")
         display = Gdk.Display.get_default()

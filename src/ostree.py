@@ -14,6 +14,7 @@ from gi.repository import Adw, Gio, GObject, Gtk  # noqa: E402
 
 RO = GObject.PARAM_READABLE
 
+
 DeploymentType = TypedDict(
     "DeploymentType",
     {
@@ -26,9 +27,12 @@ DeploymentType = TypedDict(
         "requested-local-packages": list[str],
     },
 )
+"""Schema for JSON returned by rpm-ostree status (partial)"""
 
 
 class DeploymentData(GObject.Object):
+    """GObject adapter for DeploymentType"""
+
     __gtype_name__ = "DeploymentData"
 
     def __init__(self, index: int, deployment: DeploymentType, **kwargs: Any):
@@ -71,8 +75,11 @@ class DeploymentData(GObject.Object):
 
 class OSTreeUI:
     def __init__(self, window: JankPortalWindow):
+        """Builds ViewStackPage based on rpm-ostree status, appends to window.stack"""
+
         self.window = window
         self.model = self._create_model()
+
         container = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.START
         )
@@ -97,6 +104,7 @@ class OSTreeUI:
         )
 
     def _create_model(self):
+        """Parse rpm-ostree status into Gio.ListStore"""
         try:
             model = Gio.ListStore(item_type=DeploymentData)
             result = subprocess.run(
@@ -119,6 +127,8 @@ class OSTreeUI:
             sys.exit(1)
 
     def create_row(self, deployment: DeploymentData):
+        """Create expander rows for each deployment"""
+
         subtitle = (
             f"{deployment.version} ({'not ' if not deployment.pinned else ''}pinned)"
         )
@@ -128,6 +138,7 @@ class OSTreeUI:
             title=f"{deployment.index}: {deployment.edition}", subtitle=subtitle
         )
 
+        # Prefix with icons for currently booted / staged deployments
         icon_box = Gtk.Box(width_request=16)
         if deployment.booted:
             icon = Gtk.Image.new_from_icon_name("system-shutdown-symbolic")
@@ -141,6 +152,7 @@ class OSTreeUI:
             icon_box.append(icon)
         row.add_prefix(icon_box)
 
+        # Add subrow for toggling pinned status
         pin_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
         pin_list.add_css_class("boxed-list")
         pin_list.add_css_class("sub-list")
@@ -149,6 +161,7 @@ class OSTreeUI:
         pin_list.append(pinned_row)
         row.add_row(pin_list)
 
+        # Add subrows for overlaid packages with remove buttons
         if len(deployment.overlays) > 0:
             overlay_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
@@ -179,8 +192,12 @@ class OSTreeUI:
         return row
 
     def remove_overlay(self, button: Gtk.Button, deployment: str, overlay: str):
+        """Send command to remove overlaid package to window's command runner"""
+
         print(f"I should remove {overlay} in deployment {deployment}")
 
     def toggle_ostree_pin(self, row: Adw.SwitchRow, gparam_spec: Any, index: int):
+        """Send command to pin/unpin deployment to window's command runner"""
+
         action = "pin" if row.props.active else "unpin"
         print(f"I should {action} index {index}")

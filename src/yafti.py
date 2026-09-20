@@ -43,6 +43,8 @@ class OptionData(GObject.Object):
 
 
 class ActionType(TypedDict):
+    """Schema for a YAFTI action"""
+
     id: str
     title: str
     description: str
@@ -53,6 +55,8 @@ class ActionType(TypedDict):
 
 
 class ActionData(GObject.Object):
+    """GObject adapter for ActionType"""
+
     __gtype_name__ = "ActionData"
 
     def __init__(self, action: ActionType, **kwargs: Any):
@@ -94,6 +98,8 @@ class ActionData(GObject.Object):
 
     @GObject.Property(type=str, default="", flags=RO)
     def status(self):
+        """Run status_script to determine current status, cache results"""
+
         if "status_script" not in self._action:
             return ""
         if self._status:
@@ -129,6 +135,8 @@ class ActionData(GObject.Object):
 
 
 class PageData(GObject.Object):
+    """GObject adapter for PageType"""
+
     __gtype_name__ = "PageData"
 
     def __init__(self, page: dict[str, Any], **kwargs: Any):
@@ -158,15 +166,20 @@ class PageData(GObject.Object):
 
 class YaftiUI:
     def __init__(self, window: JankPortalWindow):
+        """Builds ViewStackPages based on YAFTI YML, appends to window.stack widget"""
+
         self.window = window
         self.model = self._create_model()
 
+        # Set up wiring for search function
         self.search_text = ""
         self.window.search_entry.connect("search-changed", self.on_search_changed)
         self.custom_filter = Gtk.CustomFilter()
         self.custom_filter.set_filter_func(self.filter)
         all_actions = Gio.ListStore(item_type=ActionData)
         filtered_model = Gtk.FilterListModel.new(all_actions, self.custom_filter)
+
+        # Create list box with every possible action in it (for search func)
         omni_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
         omni_list.add_css_class("boxed-list")
         omni_list.add_css_class("root-list")
@@ -176,12 +189,15 @@ class YaftiUI:
             propagate_natural_height=True,
             child=omni_list,
         )
+
+        # Add everything list to ViewStack and hide
         self.search = window.stack.add_titled(
             child=omni_scroll, title="Search Results", name="search"
         )
         self.search.props.visible = False
 
         for screen in self.model:
+            # Append actions to everything list
             all_actions.splice(
                 all_actions.get_n_items(),
                 0,
@@ -190,6 +206,8 @@ class YaftiUI:
                     for i in range(screen.actions.get_n_items())
                 ],
             )
+
+            # Make box to contain header and list view
             container = Gtk.Box(
                 orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.START
             )
@@ -203,7 +221,9 @@ class YaftiUI:
             boxed_list.bind_model(screen.actions, self.create_row)
             container.append(boxed_list)
 
+            # Bash together an internal name, since none are given in the YAML
             name = screen.title.lower().replace(" ", "-").replace("!", "")
+            # Wrap in a ScrolledWindow and add to ViewStack
             scrollable = Gtk.ScrolledWindow(
                 vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
                 propagate_natural_height=True,
@@ -212,6 +232,8 @@ class YaftiUI:
             window.stack.add_titled(child=scrollable, title=screen.title, name=name)
 
     def on_search_changed(self, entry: Gtk.SearchEntry):
+        """Bind search entry text changes to GTK.CustomFilter changes"""
+
         self.window.search_bar.props.search_mode_enabled = True
         self.search_text = entry.props.text.strip().lower()
         self.custom_filter.changed(Gtk.FilterChange.DIFFERENT)
@@ -222,6 +244,8 @@ class YaftiUI:
             self.search.props.visible = False
 
     def filter(self, item: ActionData):
+        """Filter search results based on given text"""
+
         if not self.search_text:
             return True
 
@@ -231,6 +255,8 @@ class YaftiUI:
         )
 
     def _create_model(self, file_name: str = "/usr/share/yafti/yafti.yml"):
+        """Parse YAFTI YML into Gio.ListStore"""
+
         try:
             path = Path(file_name)
             with path.open() as file:
@@ -250,6 +276,7 @@ class YaftiUI:
             sys.exit(1)
 
     def create_row(self, action: ActionData):
+        """Create ActionRow widget from data in model"""
         title = action.title.replace("&", "&amp;")
         status = action.status
         title = Adw.ActionRow(title=title, subtitle=action.description)
@@ -257,6 +284,8 @@ class YaftiUI:
         actions = Gtk.Box(halign=Gtk.Align.END)
         actions.add_css_class("action-button-group")
 
+        # Create buttons for each option if action has options, or just create
+        # a single button for the action's script
         if action.options:
             prev = None
             for option in action.options:
@@ -285,6 +314,8 @@ class YaftiUI:
     def run_task(
         self, button: Gtk.Button, action: str, option: str | None, script: str
     ):
+        """Pass a script along to the window's command runner"""
+
         print(
             f"Action {action} {f' (option {option}) ' if option else ''}"
             f"says I should run {script}"
