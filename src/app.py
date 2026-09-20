@@ -119,6 +119,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
 
         self.yafti_ui = YaftiUI(self)
         self.ostree_ui = OSTreeUI(self)
+        self.stack.props.visible_child_name = "welcome"
 
 
 class JankPortalApp(Adw.Application):

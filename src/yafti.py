@@ -193,14 +193,17 @@ class YaftiUI:
 
         # Set up wiring for search function
         self.search_text = ""
+        self.last_page = "welcome"
         self.window.search_entry.connect("search-changed", self.on_search_changed)
         self.custom_filter = Gtk.CustomFilter()
         self.custom_filter.set_filter_func(self.filter)
         all_actions = Gio.ListStore(item_type=ActionData)
         filtered_model = Gtk.FilterListModel.new(all_actions, self.custom_filter)
 
-        # Create list box with every possible action in it (for search func)
-        omni_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        # Create everything list for search func
+        omni_list = Gtk.ListBox(
+            selection_mode=Gtk.SelectionMode.NONE, valign=Gtk.Align.START
+        )
         omni_list.add_css_class("boxed-list")
         omni_list.add_css_class("root-list")
         omni_list.bind_model(filtered_model, self.create_row)
@@ -259,9 +262,12 @@ class YaftiUI:
         self.custom_filter.changed(Gtk.FilterChange.DIFFERENT)
         if self.search_text:
             self.search.props.visible = True
+            if self.window.stack.props.visible_child_name != "search":
+                self.last_page = self.window.stack.props.visible_child_name
             self.window.stack.props.visible_child_name = "search"
         else:
             self.search.props.visible = False
+            self.window.stack.props.visible_child_name = self.last_page
 
     def filter(self, item: ActionData):
         """Filter search results based on given text"""
@@ -297,7 +303,9 @@ class YaftiUI:
 
     def create_row(self, action: ActionData):
         """Create ActionRow widget from data in model"""
-        title = Adw.ActionRow(title=action.title, subtitle=action.description)
+        title = Adw.ActionRow(
+            title=action.title, subtitle=action.description, valign=Gtk.Align.START
+        )
 
         actions = Gtk.Box(halign=Gtk.Align.END)
         actions.add_css_class("action-button-group")
