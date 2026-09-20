@@ -79,7 +79,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
 
         GLib.timeout_add_seconds(DELAY, delayed_close)
         if status != 0:
-            print(f"Command returned status: {status}")
+            print(f"Command returned non-zero status: {status}", file=sys.stderr)
 
     def on_spawn_complete(
         self, terminal: Vte.Terminal | None, pid: int, error: GLib.Error | None
@@ -87,7 +87,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
         """Wire up VTE contents-changed signal after script is spawned"""
 
         if error:
-            print(f"error: {error.message}")
+            print(f"error: {error.message}", file=sys.stderr)
             return
 
         print(f"Command runner spawned (pid {pid})")

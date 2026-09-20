@@ -334,8 +334,4 @@ class YaftiUI:
     ):
         """Pass a script along to the window's command runner"""
 
-        print(
-            f"Action {action} {f' (option {option}) ' if option else ''}"
-            f"says I should run {script}"
-        )
         self.window.command_runner(script)
