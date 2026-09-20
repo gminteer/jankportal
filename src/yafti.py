@@ -1,7 +1,7 @@
 import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 import gi
 import yaml
@@ -11,18 +11,22 @@ if TYPE_CHECKING:
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, GObject, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, GLib, GObject, Gtk  # noqa: E402
 
 RO = GObject.PARAM_READABLE
 
 
 class OptionType(TypedDict):
+    """Schema for a YAFTI action's option"""
+
     id: str
     label: str
     script: str
 
 
 class OptionData(GObject.Object):
+    """GObject adapter for OptionType"""
+
     __gtype_name__ = "OptionData"
 
     def __init__(self, option: OptionType, **kwargs: Any):
@@ -35,7 +39,7 @@ class OptionData(GObject.Object):
 
     @GObject.Property(type=str, default="", flags=RO)
     def label(self):
-        return self._option["label"]
+        return GLib.markup_escape_text(self._option["label"])
 
     @GObject.Property(type=str, default="", flags=RO)
     def script(self):
@@ -75,11 +79,11 @@ class ActionData(GObject.Object):
 
     @GObject.Property(type=str, default="", flags=RO)
     def title(self):
-        return self._action["title"]
+        return GLib.markup_escape_text(self._action["title"])
 
     @GObject.Property(type=str, default="", flags=RO)
     def description(self):
-        return self._action["description"]
+        return GLib.markup_escape_text(self._action["description"])
 
     @GObject.Property(type=str, default="", flags=RO)
     def script(self):
@@ -134,12 +138,21 @@ class ActionData(GObject.Object):
             return self._status
 
 
+class PageType(TypedDict):
+    """Schema for a YAFTI page"""
+
+    title: str
+    description: str
+    hidden: bool
+    actions: list[ActionType]
+
+
 class PageData(GObject.Object):
     """GObject adapter for PageType"""
 
     __gtype_name__ = "PageData"
 
-    def __init__(self, page: dict[str, Any], **kwargs: Any):
+    def __init__(self, page: PageType, **kwargs: Any):
         super().__init__(**kwargs)
         self._page = page
         actions = Gio.ListStore(item_type=ActionData)
@@ -162,6 +175,13 @@ class PageData(GObject.Object):
     @GObject.Property(type=Gio.ListStore, default=None, flags=RO)
     def actions(self):
         return self._actions
+
+
+class YaftiType(TypedDict):
+    """Schema for YAFTI dictionary"""
+
+    title: str
+    screens: list[PageType]
 
 
 class YaftiUI:
@@ -260,7 +280,7 @@ class YaftiUI:
         try:
             path = Path(file_name)
             with path.open() as file:
-                yafti: dict[str, Any] = yaml.safe_load(file) or {}
+                yafti = cast("YaftiType", yaml.safe_load(file))
                 if not yafti:
                     print("Error parsing yafti", file=sys.stderr)
                     sys.exit(1)
@@ -277,9 +297,7 @@ class YaftiUI:
 
     def create_row(self, action: ActionData):
         """Create ActionRow widget from data in model"""
-        title = action.title.replace("&", "&amp;")
-        status = action.status
-        title = Adw.ActionRow(title=title, subtitle=action.description)
+        title = Adw.ActionRow(title=action.title, subtitle=action.description)
 
         actions = Gtk.Box(halign=Gtk.Align.END)
         actions.add_css_class("action-button-group")
@@ -291,7 +309,7 @@ class YaftiUI:
             for option in action.options:
                 button = Gtk.ToggleButton(
                     label=option.id.replace("-", " ").title(),
-                    active=option.id == status,
+                    active=option.id == action.status,
                     margin_end=5,
                 )
                 button.connect(
