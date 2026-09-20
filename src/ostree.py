@@ -129,9 +129,7 @@ class OSTreeUI:
     def create_row(self, deployment: DeploymentData):
         """Create expander rows for each deployment"""
 
-        subtitle = (
-            f"{deployment.version} ({'not ' if not deployment.pinned else ''}pinned)"
-        )
+        subtitle = deployment.version
         if len(deployment.overlays) > 0:
             subtitle += f" ({len(deployment.overlays)} overlaid packages)"
         row = Adw.ExpanderRow(
@@ -161,7 +159,7 @@ class OSTreeUI:
         pin_list.append(pinned_row)
         row.add_row(pin_list)
 
-        # Add subrows for overlaid packages with remove buttons
+        # Add subrows for overlaid packages with remove buttons if deployment is booted
         if len(deployment.overlays) > 0:
             overlay_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
@@ -177,27 +175,27 @@ class OSTreeUI:
             for overlay in deployment.overlays:
                 overlay_row = Adw.ActionRow(title=overlay)
                 overlay_list.append(overlay_row)
-                content = Adw.ButtonContent(
-                    label="Remove", icon_name="edit-delete-symbolic"
-                )
-                button = Gtk.Button(child=content)
-                button.add_css_class("destructive-action")
-                button.add_css_class("action-button")
-                button.connect(
-                    "clicked", self.remove_overlay, deployment.index, overlay
-                )
-                overlay_row.add_suffix(button)
+                if deployment.booted:
+                    content = Adw.ButtonContent(
+                        label="Remove", icon_name="edit-delete-symbolic"
+                    )
+                    button = Gtk.Button(child=content)
+                    button.add_css_class("destructive-action")
+                    button.add_css_class("action-button")
+                    button.connect("clicked", self.remove_overlay, overlay)
+                    overlay_row.add_suffix(button)
 
             row.add_row(overlay_container)
         return row
 
-    def remove_overlay(self, button: Gtk.Button, deployment: str, overlay: str):
+    def remove_overlay(self, button: Gtk.Button, overlay: str):
         """Send command to remove overlaid package to window's command runner"""
 
-        print(f"I should remove {overlay} in deployment {deployment}")
+        self.window.command_runner(f"rpm-ostree uninstall {overlay}")
 
     def toggle_ostree_pin(self, row: Adw.SwitchRow, gparam_spec: Any, index: int):
         """Send command to pin/unpin deployment to window's command runner"""
 
-        action = "pin" if row.props.active else "unpin"
-        print(f"I should {action} index {index}")
+        self.window.command_runner(
+            f"pkexec ostree admin pin {'' if row.props.active else '--unpin '} {index}"
+        )
