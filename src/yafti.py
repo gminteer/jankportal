@@ -314,7 +314,7 @@ class YaftiUI:
         # a single button for the action's script
         if action.options:
             prev = None
-            for option in action.options:
+            for index, option in enumerate(action.options):
                 button = Gtk.ToggleButton(
                     label=option.id.replace("-", " ").title(),
                     active=option.id == action.status,
@@ -325,6 +325,13 @@ class YaftiUI:
                     button.set_group(prev)
                 prev = button
                 actions.append(button)
+                if index < action.options.get_n_items() - 1:
+                    actions.append(
+                        Gtk.Separator(
+                            orientation=Gtk.Orientation.VERTICAL,
+                            css_classes=["action-button"],
+                        )
+                    )
         else:
             button = Gtk.Button(label="Run", css_classes=["action-button"])
             button.connect("clicked", self.run_task, action.title, action.script)
