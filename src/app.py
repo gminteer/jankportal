@@ -67,17 +67,21 @@ class JankPortalWindow(Adw.ApplicationWindow):
         """Delay, then hide terminal window after script exit"""
 
         DELAY = 3
-        self.command_label.props.label = (
-            f"[Exited], terminal will hide in {DELAY} seconds"
-        )
+        self.command_label.props.label = f"[Exited], hiding in {DELAY}s…"
+        countdown = DELAY
 
         # Hide bottom sheet, unwire bottom sheet opener
         def delayed_close():
+            nonlocal countdown
+            countdown -= 1
+            if countdown:
+                self.command_label.props.label = f"[Exited], hiding in {countdown}s…"
+                return GLib.SOURCE_CONTINUE
             self.bottom_sheet.props.open = False
             self.vte.disconnect_by_func(self.on_contents_changed)
             return GLib.SOURCE_REMOVE
 
-        GLib.timeout_add_seconds(DELAY, delayed_close)
+        GLib.timeout_add_seconds(1, delayed_close)
         if status != 0:
             print(f"Command returned non-zero status: {status}", file=sys.stderr)
 
@@ -90,7 +94,6 @@ class JankPortalWindow(Adw.ApplicationWindow):
             print(f"error: {error.message}", file=sys.stderr)
             return
 
-        print(f"Command runner spawned (pid {pid})")
         self.vte.connect("contents-changed", self.on_contents_changed)
 
     def on_contents_changed(self, terminal: Vte.Terminal | None):

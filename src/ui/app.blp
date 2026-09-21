@@ -26,6 +26,8 @@ template $JankPortalWindow : Adw.ApplicationWindow {
 
         Adw.BottomSheet bottom_sheet {
             open: false;
+            can-close: false;
+            can-open: false;
             show-drag-handle: false;
 
             content: Adw.OverlaySplitView {
