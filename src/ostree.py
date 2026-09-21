@@ -108,15 +108,16 @@ class OSTreeUI:
             orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.START
         )
 
-        title = Gtk.Label(label="Current system deployments")
-        title.add_css_class("heading")
-        container.append(title)
+        container.append(
+            Gtk.Label(label="Current system deployments", css_classes=["heading"])
+        )
 
-        boxed_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
-        boxed_list.add_css_class("boxed-list")
-        boxed_list.add_css_class("root-list")
-        boxed_list.bind_model(self.model, self.create_row)
-        container.append(boxed_list)
+        deploy_list = Gtk.ListBox(
+            selection_mode=Gtk.SelectionMode.NONE,
+            css_classes=["boxed-list", "root-list"],
+        )
+        deploy_list.bind_model(self.model, self.create_row)
+        container.append(deploy_list)
 
         scrollable = Gtk.ScrolledWindow(
             propagate_natural_height=True,
@@ -156,7 +157,7 @@ class OSTreeUI:
         subtitle = deployment.version
         if len(deployment.overlays) > 0:
             subtitle += f" ({len(deployment.overlays)} overlaid packages)"
-        row = Adw.ExpanderRow(
+        dep_row = Adw.ExpanderRow(
             title=f"{deployment.index}: {deployment.edition}", subtitle=subtitle
         )
 
@@ -172,35 +173,35 @@ class OSTreeUI:
             icon.add_css_class("warning")
             icon.props.tooltip_text = "Staged update (pending reboot)"
             icon_box.append(icon)
-        row.add_prefix(icon_box)
+        dep_row.add_prefix(icon_box)
 
         # Suffix with button for changelog
-        changelog_btn = Gtk.Button(label="Changelog")
+        changelog_btn = Gtk.Button(label="Changelog", css_classes=["action-button"])
         changelog_btn.connect("clicked", self.show_changelog, deployment.version)
-        changelog_btn.add_css_class("action-button")
-        row.add_suffix(changelog_btn)
+        dep_row.add_suffix(changelog_btn)
 
         # Add subrow for toggling pinned status
-        pin_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
-        pin_list.add_css_class("boxed-list")
-        pin_list.add_css_class("sub-list")
+        pin_list = Gtk.ListBox(
+            selection_mode=Gtk.SelectionMode.NONE,
+            css_classes=["boxed-list", "sub-list"],
+        )
         pinned_row = Adw.SwitchRow(title="Pin Deployment", active=deployment.pinned)
         pinned_row.connect("notify::active", self.toggle_ostree_pin, deployment.index)
         pin_list.append(pinned_row)
-        row.add_row(pin_list)
+        dep_row.add_row(pin_list)
 
         # Add subrows for overlaid packages with remove buttons if deployment is booted
         if len(deployment.overlays) > 0:
-            overlay_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            overlay_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            overlay_box.append(
+                Gtk.Label(label="Overlaid Packages", css_classes=["heading"])
+            )
 
-            title = Gtk.Label(label="Overlaid Packages")
-            title.add_css_class("heading")
-            overlay_container.append(title)
-
-            overlay_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
-            overlay_list.add_css_class("boxed-list")
-            overlay_list.add_css_class("sub-list")
-            overlay_container.append(overlay_list)
+            overlay_list = Gtk.ListBox(
+                selection_mode=Gtk.SelectionMode.NONE,
+                css_classes=["boxed-list", "sub-list"],
+            )
+            overlay_box.append(overlay_list)
 
             for overlay in deployment.overlays:
                 overlay_row = Adw.ActionRow(title=overlay)
@@ -209,14 +210,15 @@ class OSTreeUI:
                     content = Adw.ButtonContent(
                         label="Remove", icon_name="edit-delete-symbolic"
                     )
-                    button = Gtk.Button(child=content)
-                    button.add_css_class("destructive-action")
-                    button.add_css_class("action-button")
+                    button = Gtk.Button(
+                        child=content,
+                        css_classes=["action-button", "destructive-action"],
+                    )
                     button.connect("clicked", self.remove_overlay, overlay)
                     overlay_row.add_suffix(button)
 
-            row.add_row(overlay_container)
-        return row
+            dep_row.add_row(overlay_box)
+        return dep_row
 
     def show_changelog(self, button: Gtk.Button, tag: str):
         """Show changelog in an AdwDialog overlay"""

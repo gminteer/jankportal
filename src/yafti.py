@@ -202,10 +202,10 @@ class YaftiUI:
 
         # Create everything list for search func
         omni_list = Gtk.ListBox(
-            selection_mode=Gtk.SelectionMode.NONE, valign=Gtk.Align.START
+            selection_mode=Gtk.SelectionMode.NONE,
+            valign=Gtk.Align.START,
+            css_classes=["boxed-list", "root-list"],
         )
-        omni_list.add_css_class("boxed-list")
-        omni_list.add_css_class("root-list")
         omni_list.bind_model(filtered_model, self.create_row)
         omni_scroll = Gtk.ScrolledWindow(
             vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
@@ -234,15 +234,16 @@ class YaftiUI:
             container = Gtk.Box(
                 orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.START
             )
-            description = Gtk.Label(label=screen.descrption)
-            description.add_css_class("heading")
-            container.append(description)
+            container.append(
+                Gtk.Label(label=screen.descrption, css_classes=["heading"])
+            )
 
-            boxed_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
-            boxed_list.add_css_class("boxed-list")
-            boxed_list.add_css_class("root-list")
-            boxed_list.bind_model(screen.actions, self.create_row)
-            container.append(boxed_list)
+            action_list = Gtk.ListBox(
+                selection_mode=Gtk.SelectionMode.NONE,
+                css_classes=["boxed-list", "root-list"],
+            )
+            action_list.bind_model(screen.actions, self.create_row)
+            container.append(action_list)
 
             # Bash together an internal name, since none are given in the YAML
             name = screen.title.lower().replace(" ", "-").replace("!", "")
@@ -307,8 +308,7 @@ class YaftiUI:
             title=action.title, subtitle=action.description, valign=Gtk.Align.START
         )
 
-        actions = Gtk.Box(halign=Gtk.Align.END)
-        actions.add_css_class("action-button-group")
+        actions = Gtk.Box(halign=Gtk.Align.END, css_classes=["action-button-group"])
 
         # Create buttons for each option if action has options, or just create
         # a single button for the action's script
@@ -318,7 +318,7 @@ class YaftiUI:
                 button = Gtk.ToggleButton(
                     label=option.id.replace("-", " ").title(),
                     active=option.id == action.status,
-                    margin_end=5,
+                    css_classes=["action-button"],
                 )
                 button.connect(
                     "clicked", self.run_task, action.id, option.id, option.script
@@ -328,7 +328,7 @@ class YaftiUI:
                 prev = button
                 actions.append(button)
         else:
-            button = Gtk.Button(label="Run")
+            button = Gtk.Button(label="Run", css_classes=["action-button"])
             button.connect("clicked", self.run_task, action.id, None, action.script)
             actions.append(button)
 
