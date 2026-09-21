@@ -4,13 +4,17 @@ import sys
 from typing import TYPE_CHECKING, Any, TypedDict
 
 import gi
+import markdown
+import requests
 
 if TYPE_CHECKING:
     from app import JankPortalWindow
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, GObject, Gtk  # noqa: E402
+gi.require_version("WebKit", "6.0")
+
+from gi.repository import Adw, Gio, GObject, Gtk, WebKit  # noqa: E402
 
 RO = GObject.PARAM_READABLE
 
@@ -28,6 +32,26 @@ DeploymentType = TypedDict(
     },
 )
 """Schema for JSON returned by rpm-ostree status (partial)"""
+
+
+def html_template(changelog: str):
+    """Wrap python-markdown generated HTML in an document with github-markdown.css"""
+
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.9.0/github-markdown.min.css"
+        integrity="sha512-Ouq1+UcR9ENXndFyd/YA9i+ETLJmX3WoaMBF/nDzdqJbipKGL/SAbkO+qjDoxfD/dhZs4ZqgR9vXkolrK77xmQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+<body class="markdown-body">
+    {changelog}
+</body>
+</html>
+"""
 
 
 class DeploymentData(GObject.Object):
@@ -150,6 +174,12 @@ class OSTreeUI:
             icon_box.append(icon)
         row.add_prefix(icon_box)
 
+        # Suffix with button for changelog
+        changelog_btn = Gtk.Button(label="Changelog")
+        changelog_btn.connect("clicked", self.show_changelog, deployment.version)
+        changelog_btn.add_css_class("action-button")
+        row.add_suffix(changelog_btn)
+
         # Add subrow for toggling pinned status
         pin_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
         pin_list.add_css_class("boxed-list")
@@ -187,6 +217,30 @@ class OSTreeUI:
 
             row.add_row(overlay_container)
         return row
+
+    def show_changelog(self, button: Gtk.Button, tag: str):
+        """Show changelog in an AdwDialog overlay"""
+
+        # Get release notes for whichever version was selected
+        uri = f"https://api.github.com/repos/ublue-os/bazzite/releases/tags/{tag}"
+        response = requests.get(uri)
+        if response.status_code != 200:
+            print(f"Error retrieving changelog, received code {response.status_code}")
+            return
+        raw_changelog = response.json()["body"]
+
+        # Convert to HTML and feed to a WebView
+        changelog = markdown.markdown(raw_changelog, extensions=["extra", "codehilite"])
+        web_view = WebKit.WebView(width_request=1000, height_request=500)
+        web_view.load_html(html_template(changelog))
+
+        # Wrap the WebView in a ToolbarView
+        dialog_content = Adw.ToolbarView(content=web_view)
+        dialog_content.add_top_bar(
+            Adw.HeaderBar(title_widget=Adw.WindowTitle.new("Changes", f"v{tag}"))
+        )
+        dialog = Adw.Dialog(child=dialog_content, follows_content_size=True)
+        dialog.present(self.window)
 
     def remove_overlay(self, button: Gtk.Button, overlay: str):
         """Send command to remove overlaid package to window's command runner"""
