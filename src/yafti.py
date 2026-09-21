@@ -320,16 +320,14 @@ class YaftiUI:
                     active=option.id == action.status,
                     css_classes=["action-button"],
                 )
-                button.connect(
-                    "clicked", self.run_task, action.id, option.id, option.script
-                )
+                button.connect("clicked", self.run_task, option.label, option.script)
                 if prev:
                     button.set_group(prev)
                 prev = button
                 actions.append(button)
         else:
             button = Gtk.Button(label="Run", css_classes=["action-button"])
-            button.connect("clicked", self.run_task, action.id, None, action.script)
+            button.connect("clicked", self.run_task, action.title, action.script)
             actions.append(button)
 
         row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -337,9 +335,7 @@ class YaftiUI:
         row.append(actions)
         return row
 
-    def run_task(
-        self, button: Gtk.Button, action: str, option: str | None, script: str
-    ):
+    def run_task(self, button: Gtk.Button, title: str, script: str):
         """Pass a script along to the window's command runner"""
 
-        self.window.command_runner(script)
+        self.window.command_runner(title, script)

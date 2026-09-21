@@ -247,11 +247,14 @@ class OSTreeUI:
     def remove_overlay(self, button: Gtk.Button, overlay: str):
         """Send command to remove overlaid package to window's command runner"""
 
-        self.window.command_runner(f"rpm-ostree uninstall {overlay}")
+        self.window.command_runner(
+            f"Remove {overlay}", f"rpm-ostree uninstall {overlay}"
+        )
 
     def toggle_ostree_pin(self, row: Adw.SwitchRow, gparam_spec: Any, index: int):
         """Send command to pin/unpin deployment to window's command runner"""
 
         self.window.command_runner(
-            f"pkexec ostree admin pin {'' if row.props.active else '--unpin '} {index}"
+            f"{'Pin' if row.props.active else 'Unpin'} Deployment {index}",
+            f"pkexec ostree admin pin {'' if row.props.active else '--unpin '} {index}",
         )

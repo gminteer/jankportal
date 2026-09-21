@@ -99,10 +99,10 @@ class JankPortalWindow(Adw.ApplicationWindow):
         self.bottom_sheet.props.open = True
         self.vte.grab_focus()
 
-    def command_runner(self, script: str):
+    def command_runner(self, title: str, script: str):
         """Pass script to terminal widget"""
 
-        self.command_label.props.label = script
+        self.command_label.props.label = title
         self.vte.spawn_async(
             pty_flags=Vte.PtyFlags.DEFAULT,
             working_directory=os.environ.get("HOME"),
