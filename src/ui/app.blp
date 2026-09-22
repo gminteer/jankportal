@@ -11,15 +11,9 @@ template $JankPortalWindow : Adw.ApplicationWindow {
         [top]
         Adw.HeaderBar {
             [start]
-            ToggleButton search_button {
-              icon-name: "edit-find-symbolic";
-              tooltip-text: _("Search");
-            }
-        }
-        [top]
-        SearchBar search_bar {
-            search-mode-enabled: bind search_button.active bidirectional;
-            child: SearchEntry search_entry {
+            SearchBar search_bar {
+                search-mode-enabled: true;
+                child: SearchEntry search_entry {
                     placeholder-text: _("Search…");
                 };
             }
@@ -53,8 +47,8 @@ template $JankPortalWindow : Adw.ApplicationWindow {
                 Adw.HeaderBar sheet_header{
                     show-end-title-buttons: false;
                     title-widget: Label command_label {
-                    label: _("");
-                    margin-bottom: 10;
+                        label: _("");
+                        margin-bottom: 10;
                         ellipsize: end;
                         styles ["heading"]
                     };
