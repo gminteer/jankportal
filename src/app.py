@@ -57,14 +57,30 @@ class JankPortalWindow(Adw.ApplicationWindow):
     command_label: Gtk.Label = Gtk.Template.Child()
     search_bar: Gtk.SearchBar = Gtk.Template.Child()
     search_entry: Gtk.SearchEntry = Gtk.Template.Child()
+    keep_vte_open: Gtk.ToggleButton = Gtk.Template.Child()
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
         self.vte.connect("child-exited", self.on_child_exited)
         self.search_entry.set_key_capture_widget(self)
+        self._vte_is_running = False
+
+    @Gtk.Template.Callback()
+    def on_keep_vte_open_clicked(self, button: Gtk.ToggleButton):
+        if self.keep_vte_open.props.active:
+            self.keep_vte_open.props.icon_name = "window-unpin-symbolic"
+            return
+        self.keep_vte_open.props.icon_name = "window-pin-symbolic"
+        if not self._vte_is_running and self.bottom_sheet.props.open:
+            self.bottom_sheet.props.open = False
 
     def on_child_exited(self, terminal: Vte.Terminal, status: int):
         """Delay, then hide terminal window after script exit"""
+
+        self._vte_is_running = False
+        if self.keep_vte_open.props.active:
+            self.command_label.props.label = "[Exited], unpin to close window"
+            return
 
         DELAY = 3
         self.command_label.props.label = f"[Exited], hiding in {DELAY}s…"
@@ -94,6 +110,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
             print(f"error: {error.message}", file=sys.stderr)
             return
 
+        self._vte_is_running = True
         self.vte.connect("contents-changed", self.on_contents_changed)
 
     def on_contents_changed(self, terminal: Vte.Terminal | None):

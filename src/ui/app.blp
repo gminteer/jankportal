@@ -20,8 +20,17 @@ template $JankPortalWindow : Adw.ApplicationWindow {
         SearchBar search_bar {
             search-mode-enabled: bind search_button.active bidirectional;
             child: SearchEntry search_entry {
-            placeholder-text: _("Search actions…");
-            };
+                    placeholder-text: _("Search…");
+                };
+            }
+            ToggleButton keep_vte_open {
+              tooltip-text: _("Keep command runner open after command exits");
+              icon-name: "window-pin-symbolic";
+              margin-top: 10;
+              margin-bottom: 10;
+              styles ["circular"]
+              clicked => $on_keep_vte_open_clicked();
+            }
         }
 
         Adw.BottomSheet bottom_sheet {
@@ -39,15 +48,16 @@ template $JankPortalWindow : Adw.ApplicationWindow {
                 };
             };
 
-            sheet:  Box {
-                orientation: vertical;
-
-                Label command_label {
+            sheet:  Adw.ToolbarView {
+                [top]
+                Adw.HeaderBar sheet_header{
+                    show-end-title-buttons: false;
+                    title-widget: Label command_label {
                     label: _("");
-                    wrap: true;
-                    max-width-chars: 80;
                     margin-bottom: 10;
-                    styles ["heading", "font-mono"]
+                        ellipsize: end;
+                        styles ["heading"]
+                    };
                 }
 
                 ScrolledWindow {
