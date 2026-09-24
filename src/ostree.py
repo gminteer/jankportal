@@ -225,8 +225,7 @@ def create_page(
     branch_tags, _release_tags = get_tags(current_image)
     tag_model = Gtk.StringList.new(sorted(branch_tags))
 
-    # If there is I don't know it so I'm gonna just caveman my way through marking
-    # the active string by value by iterating through the model
+    # I mean it works, but it's not very pretty...
     index = -1
     for i in range(tag_model.get_n_items()):
         if tag_model.get_string(i) == tag:
