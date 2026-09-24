@@ -1,3 +1,4 @@
+import shlex
 import subprocess
 import sys
 from typing import Any, NotRequired, TypedDict
@@ -159,19 +160,25 @@ class ActionData(GObject.Object):
             return ""
         if self._status:
             return self._status
-        s = self._action["status_script"].split()
+        # Kludge around the proton-plus status script
+        if self._action["status_script"].startswith("if "):
+            s = ["bash", "--noprofile", "--norc", "-lc", self._action["status_script"]]
+        else:
+            s = shlex.split(self._action["status_script"])
 
         try:
-            result = subprocess.run(s, capture_output=True, text=True, check=True)
+            result = subprocess.run(
+                s,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
             self._status = result.stdout.strip()
             return self._status
 
         except FileNotFoundError:
             print(
-                (
-                    f"status_script for command '{self._action['id']}' not found: '{s}'"
-                    f"\n(command is '{s}')"
-                ),
+                f"status_script for command '{self._action['id']}' not found: '{s[0]}'",
                 file=sys.stderr,
             )
             self._status = "script_failed"
