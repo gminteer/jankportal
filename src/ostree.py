@@ -1,13 +1,17 @@
 import json
 import subprocess
 import sys
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any
 
 import gi
 import markdown
 import requests
 
+from datatypes import DeploymentData
+
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from app import JankPortalWindow
 
 gi.require_version("Gtk", "4.0")
@@ -16,22 +20,53 @@ gi.require_version("WebKit", "6.0")
 
 from gi.repository import Adw, Gio, GObject, Gtk, WebKit  # noqa: E402
 
+IMAGES = [
+    "bazzite",
+    "bazzite-deck",
+    "bazzite-nvidia",
+    "bazzite-nvidia-open",
+    "bazzite-deck-nvidia",
+    "bazzite-gnome",
+    "bazzite-gnome-nvidia-open",
+    "bazzite-deck-gnome",
+    "bazzite-dx",
+    "bazzite-dx-gnome",
+    "bazzite-dx-nvidia",
+    "bazzite-dx-nvidia-gnome",
+]
+
 RO = GObject.PARAM_READABLE
 
 
-DeploymentType = TypedDict(
-    "DeploymentType",
-    {
-        "container-image-reference": str,
-        "version": str,
-        "pinned": bool,
-        "booted": bool,
-        "staged": bool,
-        "packages": list[str],
-        "requested-local-packages": list[str],
-    },
-)
-"""Schema for JSON returned by rpm-ostree status (partial)"""
+def create_model():
+    """Parse rpm-ostree status into Gio.ListStore"""
+    try:
+        model = Gio.ListStore(item_type=DeploymentData)
+        result = subprocess.run(
+            ["rpm-ostree", "status", "--json"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        ostree_status = json.loads(result.stdout)
+
+        image: str = ""
+        tag: str = ""
+        for index, deployment in enumerate(ostree_status["deployments"]):
+            model.append(DeploymentData(index=index, deployment=deployment))
+            if deployment["booted"]:
+                image, tag = (
+                    deployment["container-image-reference"].split("/")[-1].split(":")
+                )
+        return model, image, tag
+
+    except FileNotFoundError:
+        print("rpm-ostree not in $PATH", file=sys.stderr)
+        sys.exit(1)
+
+    except subprocess.CalledProcessError as error:
+        print(f"rpm-ostree error: {error.stderr}", file=sys.stderr)
+        sys.exit(1)
 
 
 def html_template(changelog: str):
@@ -54,47 +89,167 @@ def html_template(changelog: str):
 """
 
 
-class DeploymentData(GObject.Object):
-    """GObject adapter for DeploymentType"""
+def get_tags(image: str) -> tuple[list[str], list[str]]:
+    """Get tags for a given image from skopeo, sorts them into branches and releases"""
 
-    __gtype_name__ = "DeploymentData"
+    image_uri = f"docker://ghcr.io/ublue-os/{image}"
+    try:
+        result = subprocess.run(
+            ["skopeo", "list-tags", image_uri],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        raw_tags = json.loads(result.stdout)["Tags"]
+        # filter for just stable and testing tags
+        tags = [tag for tag in raw_tags if tag.startswith(("stable", "testing"))]
+        branch_tags: list[str] = []
+        release_tags: list[str] = []
+        for tag in tags:
+            if "." in tag:
+                release_tags.append(tag)
+            else:
+                branch_tags.append(tag)
+        return branch_tags, release_tags
 
-    def __init__(self, index: int, deployment: DeploymentType, **kwargs: Any):
-        super().__init__(**kwargs)
-        self._data = deployment
-        self._index = index
-        self._overlays = [
-            *deployment["packages"],
-            *deployment["requested-local-packages"],
-        ]
+    except FileNotFoundError:
+        print("skopeo not in $PATH", file=sys.stderr)
+        sys.exit(1)
 
-    @GObject.Property(type=int, default=0, flags=RO)
-    def index(self):
-        return self._index
+    except subprocess.CalledProcessError as error:
+        print(f"skopeo error: {error.stderr}", file=sys.stderr)
+        sys.exit(1)
 
-    @GObject.Property(type=str, default="", flags=RO)
-    def edition(self):
-        return self._data["container-image-reference"].split("/")[-1]
 
-    @GObject.Property(type=str, default="", flags=RO)
-    def version(self):
-        return self._data["version"]
+def create_row(
+    deployment: DeploymentData,
+    show_changelog: Callable[[Gtk.Button, str], None],
+    toggle_ostree_pin: Callable[[Adw.SwitchRow, Any, int], None],
+    remove_overlay: Callable[[Gtk.Button, str], None],
+):
+    """Create expander rows for each deployment"""
 
-    @GObject.Property(type=bool, default=False, flags=RO)
-    def pinned(self):
-        return self._data["pinned"]
+    subtitle = ""
+    if len(deployment.overlays) > 0:
+        subtitle = f"({len(deployment.overlays)} overlaid packages)"
+    dep_row = Adw.ExpanderRow(
+        title=f"{deployment.index}: Version {deployment.version}", subtitle=subtitle
+    )
 
-    @GObject.Property(type=bool, default=False, flags=RO)
-    def booted(self):
-        return self._data["booted"]
+    # Prefix with icons for currently booted / staged deployments
+    icon_box = Gtk.Box(width_request=16)
+    if deployment.booted:
+        icon = Gtk.Image.new_from_icon_name("system-shutdown-symbolic")
+        icon.add_css_class("success")
+        icon.props.tooltip_text = "Currently booted"
+        icon_box.append(icon)
+    elif deployment.staged:
+        icon = Gtk.Image.new_from_icon_name("system-reboot-symbolic")
+        icon.add_css_class("warning")
+        icon.props.tooltip_text = "Staged update (pending reboot)"
+        icon_box.append(icon)
+    dep_row.add_prefix(icon_box)
 
-    @GObject.Property(type=bool, default=False, flags=RO)
-    def staged(self):
-        return self._data["staged"]
+    # Suffix with button for changelog
+    changelog_btn = Gtk.Button(label="Changelog", css_classes=["action-button"])
+    changelog_btn.connect("clicked", show_changelog, deployment.version)
+    dep_row.add_suffix(changelog_btn)
 
-    @property
-    def overlays(self):
-        return self._overlays
+    # Add subrow for toggling pinned status
+    pin_list = Gtk.ListBox(
+        selection_mode=Gtk.SelectionMode.NONE,
+        css_classes=["boxed-list", "sub-list"],
+    )
+    pinned_row = Adw.SwitchRow(title="Pin Deployment", active=deployment.pinned)
+    pinned_row.connect("notify::active", toggle_ostree_pin, deployment.index)
+    pin_list.append(pinned_row)
+    dep_row.add_row(pin_list)
+
+    # Add subrows for overlaid packages with remove buttons if deployment is booted
+    if len(deployment.overlays) > 0:
+        overlay_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        overlay_box.append(
+            Gtk.Label(label="Overlaid Packages", css_classes=["heading"])
+        )
+
+        overlay_list = Gtk.ListBox(
+            selection_mode=Gtk.SelectionMode.NONE,
+            css_classes=["boxed-list", "sub-list"],
+        )
+        overlay_box.append(overlay_list)
+
+        for overlay in deployment.overlays:
+            overlay_row = Adw.ActionRow(title=overlay)
+            overlay_list.append(overlay_row)
+            if deployment.booted:
+                button = Gtk.Button(
+                    child=Gtk.Image.new_from_icon_name("edit-delete-symbolic"),
+                    css_classes=["action-button", "destructive-action"],
+                )
+                button.connect("clicked", remove_overlay, overlay)
+                overlay_row.add_suffix(button)
+
+        dep_row.add_row(overlay_box)
+    return dep_row
+
+
+def create_page(
+    model: Gio.ListStore[DeploymentData],
+    current_image: str,
+    tag: str,
+    row_factory: Callable[[DeploymentData], Adw.ExpanderRow],
+):
+    container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.START)
+
+    track_widget = Gtk.ListBox(css_classes=["boxed-list", "root-list"])
+    filtered_images = [
+        image
+        for image in IMAGES
+        if (
+            ("gnome" in image) == ("gnome" in current_image)
+            and ("nvidia" in image) == ("nvidia" in current_image)
+        )
+    ]
+    image_model = Gtk.StringList.new(sorted(filtered_images))
+
+    # There's gotta be a better way, maybe?
+    index = -1
+    for i in range(image_model.get_n_items()):
+        if image_model.get_string(i) == current_image:
+            index = i
+            break
+    image_row = Adw.ComboRow(title="Image", model=image_model)
+    image_row.set_selected(index)
+    track_widget.append(image_row)
+
+    branch_tags, _release_tags = get_tags(current_image)
+    tag_model = Gtk.StringList.new(sorted(branch_tags))
+
+    # If there is I don't know it so I'm gonna just caveman my way through marking
+    # the active string by value by iterating through the model
+    index = -1
+    for i in range(tag_model.get_n_items()):
+        if tag_model.get_string(i) == tag:
+            index = i
+            break
+
+    tag_row = Adw.ComboRow(title="Tag", model=tag_model)
+    tag_row.set_selected(index)
+    track_widget.append(tag_row)
+    container.append(track_widget)
+
+    deploy_list = Gtk.ListBox(
+        selection_mode=Gtk.SelectionMode.NONE,
+        css_classes=["boxed-list", "root-list"],
+    )
+    deploy_list.bind_model(model, row_factory)
+    container.append(deploy_list)
+
+    return Gtk.ScrolledWindow(
+        propagate_natural_height=True,
+        vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+        child=container,
+    )
 
 
 class OSTreeUI:
@@ -102,123 +257,18 @@ class OSTreeUI:
         """Builds ViewStackPage based on rpm-ostree status, appends to window.stack"""
 
         self.window = window
-        self.model = self._create_model()
+        self.model, image, tag = create_model()
 
-        container = Gtk.Box(
-            orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.START
-        )
-
-        container.append(
-            Gtk.Label(label="Current system deployments", css_classes=["heading"])
-        )
-
-        deploy_list = Gtk.ListBox(
-            selection_mode=Gtk.SelectionMode.NONE,
-            css_classes=["boxed-list", "root-list"],
-        )
-        deploy_list.bind_model(self.model, self.create_row)
-        container.append(deploy_list)
-
-        scrollable = Gtk.ScrolledWindow(
-            propagate_natural_height=True,
-            vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
-            child=container,
-        )
-        self.window.stack.add_titled(
-            child=scrollable, title="Deployments", name="ostree"
-        )
-
-    def _create_model(self):
-        """Parse rpm-ostree status into Gio.ListStore"""
-        try:
-            model = Gio.ListStore(item_type=DeploymentData)
-            result = subprocess.run(
-                ["rpm-ostree", "status", "--json"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            ostree_status = json.loads(result.stdout)
-            for index, deployment in enumerate(ostree_status["deployments"]):
-                model.append(DeploymentData(index=index, deployment=deployment))
-            return model
-
-        except FileNotFoundError:
-            print("rpm-ostree not in $PATH", file=sys.stderr)
-            sys.exit(1)
-
-        except subprocess.CalledProcessError as error:
-            print(f"rpm-ostree error: {error.stderr}")
-            sys.exit(1)
-
-    def create_row(self, deployment: DeploymentData):
-        """Create expander rows for each deployment"""
-
-        subtitle = deployment.version
-        if len(deployment.overlays) > 0:
-            subtitle += f" ({len(deployment.overlays)} overlaid packages)"
-        dep_row = Adw.ExpanderRow(
-            title=f"{deployment.index}: {deployment.edition}", subtitle=subtitle
-        )
-
-        # Prefix with icons for currently booted / staged deployments
-        icon_box = Gtk.Box(width_request=16)
-        if deployment.booted:
-            icon = Gtk.Image.new_from_icon_name("system-shutdown-symbolic")
-            icon.add_css_class("success")
-            icon.props.tooltip_text = "Currently booted"
-            icon_box.append(icon)
-        elif deployment.staged:
-            icon = Gtk.Image.new_from_icon_name("system-reboot-symbolic")
-            icon.add_css_class("warning")
-            icon.props.tooltip_text = "Staged update (pending reboot)"
-            icon_box.append(icon)
-        dep_row.add_prefix(icon_box)
-
-        # Suffix with button for changelog
-        changelog_btn = Gtk.Button(label="Changelog", css_classes=["action-button"])
-        changelog_btn.connect("clicked", self.show_changelog, deployment.version)
-        dep_row.add_suffix(changelog_btn)
-
-        # Add subrow for toggling pinned status
-        pin_list = Gtk.ListBox(
-            selection_mode=Gtk.SelectionMode.NONE,
-            css_classes=["boxed-list", "sub-list"],
-        )
-        pinned_row = Adw.SwitchRow(title="Pin Deployment", active=deployment.pinned)
-        pinned_row.connect("notify::active", self.toggle_ostree_pin, deployment.index)
-        pin_list.append(pinned_row)
-        dep_row.add_row(pin_list)
-
-        # Add subrows for overlaid packages with remove buttons if deployment is booted
-        if len(deployment.overlays) > 0:
-            overlay_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-            overlay_box.append(
-                Gtk.Label(label="Overlaid Packages", css_classes=["heading"])
+        def row_factory(deployment: DeploymentData):
+            return create_row(
+                deployment,
+                self.show_changelog,
+                self.toggle_ostree_pin,
+                self.remove_overlay,
             )
 
-            overlay_list = Gtk.ListBox(
-                selection_mode=Gtk.SelectionMode.NONE,
-                css_classes=["boxed-list", "sub-list"],
-            )
-            overlay_box.append(overlay_list)
-
-            for overlay in deployment.overlays:
-                overlay_row = Adw.ActionRow(title=overlay)
-                overlay_list.append(overlay_row)
-                if deployment.booted:
-                    content = Adw.ButtonContent(
-                        label="Remove", icon_name="edit-delete-symbolic"
-                    )
-                    button = Gtk.Button(
-                        child=content,
-                        css_classes=["action-button", "destructive-action"],
-                    )
-                    button.connect("clicked", self.remove_overlay, overlay)
-                    overlay_row.add_suffix(button)
-
-            dep_row.add_row(overlay_box)
-        return dep_row
+        page = create_page(self.model, image, tag, row_factory)
+        self.window.stack.add_titled(child=page, title="Deployments", name="ostree")
 
     def show_changelog(self, button: Gtk.Button, tag: str):
         """Show changelog in an AdwDialog overlay"""

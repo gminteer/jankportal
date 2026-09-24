@@ -1,187 +1,172 @@
-import subprocess
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict, cast
 
 import gi
 import yaml
 
+from datatypes import ActionData, PageData
+
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from app import JankPortalWindow
+    from datatypes import YaftiType
+
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, GLib, GObject, Gtk  # noqa: E402
-
-RO = GObject.PARAM_READABLE
+from gi.repository import Adw, Gio, Gtk  # noqa: E402
 
 
-class OptionType(TypedDict):
-    """Schema for a YAFTI action's option"""
-
-    id: str
-    label: str
-    script: str
-
-
-class OptionData(GObject.Object):
-    """GObject adapter for OptionType"""
-
-    __gtype_name__ = "OptionData"
-
-    def __init__(self, option: OptionType, **kwargs: Any):
-        super().__init__(**kwargs)
-        self._option = option
-
-    @GObject.Property(type=str, default="", flags=RO)
-    def id(self):
-        return self._option["id"]
-
-    @GObject.Property(type=str, default="", flags=RO)
-    def label(self):
-        return GLib.markup_escape_text(self._option["label"])
-
-    @GObject.Property(type=str, default="", flags=RO)
-    def script(self):
-        return self._option["script"]
-
-
-class ActionType(TypedDict):
-    """Schema for a YAFTI action"""
-
-    id: str
+class TitledPage(TypedDict):
+    name: str
     title: str
-    description: str
-    script: NotRequired[str]
-    default: bool
-    options: NotRequired[list[OptionType]]
-    status_script: NotRequired[str]
+    visible: bool
+    page: Gtk.ScrolledWindow
 
 
-class ActionData(GObject.Object):
-    """GObject adapter for ActionType"""
+def create_model(file_name: str = "/usr/share/yafti/yafti.yml"):
+    """Parse YAFTI YML into Gio.ListStore"""
 
-    __gtype_name__ = "ActionData"
+    try:
+        path = Path(file_name)
+        with path.open() as file:
+            yafti = cast("YaftiType", yaml.safe_load(file))
+            if not yafti:
+                print("Error parsing yafti", file=sys.stderr)
+                sys.exit(1)
 
-    def __init__(self, action: ActionType, **kwargs: Any):
-        super().__init__(**kwargs)
-        self._action = action
-        self._status = ""
-        if "options" not in action:
-            return
-        self._options = Gio.ListStore(item_type=OptionData)
-        for option in action["options"]:
-            self._options.append(OptionData(option))
+            model = Gio.ListStore(item_type=PageData)
+            for screen in yafti["screens"]:
+                model.append(PageData(screen))
 
-    @GObject.Property(type=str, default="", flags=RO)
-    def id(self):
-        return self._action["id"]
+            return model
 
-    @GObject.Property(type=str, default="", flags=RO)
-    def title(self):
-        return GLib.markup_escape_text(self._action["title"])
+    except FileNotFoundError:
+        print(f"yafti scripts file not found at {file_name}", file=sys.stderr)
+        sys.exit(1)
 
-    @GObject.Property(type=str, default="", flags=RO)
-    def description(self):
-        return GLib.markup_escape_text(self._action["description"])
 
-    @GObject.Property(type=str, default="", flags=RO)
-    def script(self):
-        return self._action.get("script", "")
+def create_row(
+    action: ActionData, on_button_clicked: Callable[[Gtk.Button, str, str], None]
+):
+    """Create ActionRow widget from data in model"""
 
-    @GObject.Property(type=bool, default=False, flags=RO)
-    def default(self):
-        return self._action["default"]
+    title = Adw.ActionRow(
+        title=action.title, subtitle=action.description, valign=Gtk.Align.START
+    )
 
-    @property
-    def options(self):
-        try:
-            return self._options
-        except AttributeError:
-            return Gio.ListStore(item_type=OptionData)
+    actions = Gtk.Box(halign=Gtk.Align.END, css_classes=["action-button-group"])
 
-    @GObject.Property(type=str, default="", flags=RO)
-    def status(self):
-        """Run status_script to determine current status, cache results"""
-
-        if "status_script" not in self._action:
-            return ""
-        if self._status:
-            return self._status
-        s = self._action["status_script"].split()
-
-        try:
-            result = subprocess.run(s, capture_output=True, text=True, check=True)
-            self._status = result.stdout.strip()
-            return self._status
-
-        except FileNotFoundError:
-            print(
-                (
-                    f"status_script for command '{self._action['id']}' not found: '{s}'"
-                    f"\n(command is '{s}')"
-                ),
-                file=sys.stderr,
+    # Create buttons for each option if action has options, or just create
+    # a single button for the action's script
+    if action.options:
+        prev = None
+        for index, option in enumerate(action.options):
+            button = Gtk.ToggleButton(
+                label=option.id.replace("-", " ").title(),
+                active=option.id == action.status,
+                css_classes=["action-button"],
             )
-            self._status = "script_failed"
-            return self._status
+            button.connect("clicked", on_button_clicked, option.label, option.script)
+            if prev:
+                button.set_group(prev)
+            prev = button
+            actions.append(button)
+            if index < action.options.get_n_items() - 1:
+                actions.append(
+                    Gtk.Separator(
+                        orientation=Gtk.Orientation.VERTICAL,
+                        css_classes=["action-button"],
+                    )
+                )
+    else:
+        button = Gtk.Button(label="Run", css_classes=["action-button"])
+        button.connect("clicked", on_button_clicked, action.title, action.script)
+        actions.append(button)
 
-        except subprocess.CalledProcessError as error:
-            print(
-                (
-                    f"status_script for command '{self._action['id']}' "
-                    f"returned error: {error.stderr}\n(command is '{s}')"
-                ),
-                file=sys.stderr,
-            )
-            self._status = "script_failed"
-            return self._status
-
-
-class PageType(TypedDict):
-    """Schema for a YAFTI page"""
-
-    title: str
-    description: str
-    hidden: bool
-    actions: list[ActionType]
-
-
-class PageData(GObject.Object):
-    """GObject adapter for PageType"""
-
-    __gtype_name__ = "PageData"
-
-    def __init__(self, page: PageType, **kwargs: Any):
-        super().__init__(**kwargs)
-        self._page = page
-        actions = Gio.ListStore(item_type=ActionData)
-        for action in self._page["actions"]:
-            actions.append(ActionData(action))
-        self._actions = actions
-
-    @GObject.Property(type=str, default="", flags=RO)
-    def title(self):
-        return self._page["title"]
-
-    @GObject.Property(type=str, default="", flags=RO)
-    def descrption(self):
-        return self._page["description"]
-
-    @GObject.Property(type=bool, default=False, flags=RO)
-    def hidden(self):
-        return self._page["hidden"]
-
-    @GObject.Property(type=Gio.ListStore, default=None, flags=RO)
-    def actions(self):
-        return self._actions
+    row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    row.append(title)
+    row.append(actions)
+    return row
 
 
-class YaftiType(TypedDict):
-    """Schema for YAFTI dictionary"""
+def create_pages(
+    model: Gio.ListStore[PageData],
+    on_button_clicked: Callable[[Gtk.Button, str, str], None],
+    filter: Gtk.CustomFilter,
+):
+    def row_factory(action: ActionData):
+        return create_row(action, on_button_clicked)
 
-    title: str
-    screens: list[PageType]
+    # Create everything list for search func
+    all_actions = Gio.ListStore(item_type=ActionData)
+    filtered_model = Gtk.FilterListModel.new(all_actions, filter)
+
+    omni_list = Gtk.ListBox(
+        selection_mode=Gtk.SelectionMode.NONE,
+        valign=Gtk.Align.START,
+        css_classes=["boxed-list", "root-list"],
+    )
+    omni_list.bind_model(filtered_model, row_factory)
+    omni_scroll = Gtk.ScrolledWindow(
+        vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+        propagate_natural_height=True,
+        child=omni_list,
+    )
+    pages: list[TitledPage] = [
+        {
+            "title": "Search Results",
+            "name": "search",
+            "visible": False,
+            "page": omni_scroll,
+        }
+    ]
+
+    for screen in model:
+        # Append actions to everything list
+        all_actions.splice(
+            all_actions.get_n_items(),
+            0,
+            [screen.actions.get_item(i) for i in range(screen.actions.get_n_items())],
+        )
+
+        # Make box to contain header and list view
+        container = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.START
+        )
+        container.append(Gtk.Label(label=screen.descrption, css_classes=["heading"]))
+
+        action_list = Gtk.ListBox(
+            selection_mode=Gtk.SelectionMode.NONE,
+            css_classes=["boxed-list", "root-list"],
+        )
+        action_list.bind_model(screen.actions, row_factory)
+        container.append(action_list)
+
+        # Bash together an internal name, since none are given in the YAML
+        name = screen.title.lower().replace(" ", "-").replace("!", "")
+        # Wrap in a ScrolledWindow and add to ViewStack
+        scrollable = Gtk.ScrolledWindow(
+            vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+            propagate_natural_height=True,
+            child=container,
+        )
+        pages.append(
+            {"name": name, "title": screen.title, "visible": True, "page": scrollable}
+        )
+
+    return pages
+
+
+def filter(item: ActionData, search_text: str):
+    """Filter search results based on given text"""
+
+    if not search_text:
+        return True
+
+    return search_text in item.title.lower() or search_text in item.description.lower()
 
 
 class YaftiUI:
@@ -189,78 +174,42 @@ class YaftiUI:
         """Builds ViewStackPages based on YAFTI YML, appends to window.stack widget"""
 
         self.window = window
-        self.model = self._create_model()
+        model = create_model()
 
         # Set up wiring for search function
         self.search_text = ""
         self.last_page = "welcome"
         self.window.search_entry.connect("search-changed", self.on_search_changed)
-        self.custom_filter = Gtk.CustomFilter()
-        self.custom_filter.set_filter_func(self.filter)
-        all_actions = Gio.ListStore(item_type=ActionData)
-        filtered_model = Gtk.FilterListModel.new(all_actions, self.custom_filter)
 
-        # Create everything list for search func
-        omni_list = Gtk.ListBox(
-            selection_mode=Gtk.SelectionMode.NONE,
-            valign=Gtk.Align.START,
-            css_classes=["boxed-list", "root-list"],
-        )
-        omni_list.bind_model(filtered_model, self.create_row)
-        omni_scroll = Gtk.ScrolledWindow(
-            vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
-            propagate_natural_height=True,
-            child=omni_list,
-        )
+        def filter_func(item: ActionData):
+            return filter(item, self.search_text)
 
-        # Add everything list to ViewStack and hide
-        self.search = window.stack.add_titled(
-            child=omni_scroll, title="Search Results", name="search"
-        )
-        self.search.props.visible = False
+        self._filter = Gtk.CustomFilter.new(filter_func)
 
-        for screen in self.model:
-            # Append actions to everything list
-            all_actions.splice(
-                all_actions.get_n_items(),
-                0,
-                [
-                    screen.actions.get_item(i)
-                    for i in range(screen.actions.get_n_items())
-                ],
+        pages = create_pages(model, self.on_button_clicked, self._filter)
+        for page in pages:
+            bound_page = window.stack.add_titled(
+                child=page["page"], title=page["title"], name=page["name"]
             )
+            bound_page.props.visible = page["visible"]
 
-            # Make box to contain header and list view
-            container = Gtk.Box(
-                orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.START
-            )
-            container.append(
-                Gtk.Label(label=screen.descrption, css_classes=["heading"])
-            )
+        search_wrapper = window.stack.get_child_by_name("search")
+        if not isinstance(search_wrapper, Gtk.Widget):
+            print("missing search page!", sys.stderr)
+            sys.exit(1)
+        self.search = window.stack.get_page(search_wrapper)
 
-            action_list = Gtk.ListBox(
-                selection_mode=Gtk.SelectionMode.NONE,
-                css_classes=["boxed-list", "root-list"],
-            )
-            action_list.bind_model(screen.actions, self.create_row)
-            container.append(action_list)
+    def on_button_clicked(self, button: Gtk.Button, title: str, script: str):
+        """Pass a script along to the window's command runner"""
 
-            # Bash together an internal name, since none are given in the YAML
-            name = screen.title.lower().replace(" ", "-").replace("!", "")
-            # Wrap in a ScrolledWindow and add to ViewStack
-            scrollable = Gtk.ScrolledWindow(
-                vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
-                propagate_natural_height=True,
-                child=container,
-            )
-            window.stack.add_titled(child=scrollable, title=screen.title, name=name)
+        self.window.command_runner(title, script)
 
     def on_search_changed(self, entry: Gtk.SearchEntry):
         """Bind search entry text changes to GTK.CustomFilter changes"""
 
         self.window.search_bar.props.search_mode_enabled = True
         self.search_text = entry.props.text.strip().lower()
-        self.custom_filter.changed(Gtk.FilterChange.DIFFERENT)
+        self._filter.changed(Gtk.FilterChange.DIFFERENT)
         if self.search_text:
             self.search.props.visible = True
             if self.window.stack.props.visible_child_name != "search":
@@ -269,80 +218,3 @@ class YaftiUI:
         else:
             self.search.props.visible = False
             self.window.stack.props.visible_child_name = self.last_page
-
-    def filter(self, item: ActionData):
-        """Filter search results based on given text"""
-
-        if not self.search_text:
-            return True
-
-        return (
-            self.search_text in item.title.lower()
-            or self.search_text in item.description.lower()
-        )
-
-    def _create_model(self, file_name: str = "/usr/share/yafti/yafti.yml"):
-        """Parse YAFTI YML into Gio.ListStore"""
-
-        try:
-            path = Path(file_name)
-            with path.open() as file:
-                yafti = cast("YaftiType", yaml.safe_load(file))
-                if not yafti:
-                    print("Error parsing yafti", file=sys.stderr)
-                    sys.exit(1)
-
-                model = Gio.ListStore(item_type=PageData)
-                for screen in yafti["screens"]:
-                    model.append(PageData(screen))
-
-                return model
-
-        except FileNotFoundError:
-            print(f"yafti scripts file not found at {file_name}", file=sys.stderr)
-            sys.exit(1)
-
-    def create_row(self, action: ActionData):
-        """Create ActionRow widget from data in model"""
-        title = Adw.ActionRow(
-            title=action.title, subtitle=action.description, valign=Gtk.Align.START
-        )
-
-        actions = Gtk.Box(halign=Gtk.Align.END, css_classes=["action-button-group"])
-
-        # Create buttons for each option if action has options, or just create
-        # a single button for the action's script
-        if action.options:
-            prev = None
-            for index, option in enumerate(action.options):
-                button = Gtk.ToggleButton(
-                    label=option.id.replace("-", " ").title(),
-                    active=option.id == action.status,
-                    css_classes=["action-button"],
-                )
-                button.connect("clicked", self.run_task, option.label, option.script)
-                if prev:
-                    button.set_group(prev)
-                prev = button
-                actions.append(button)
-                if index < action.options.get_n_items() - 1:
-                    actions.append(
-                        Gtk.Separator(
-                            orientation=Gtk.Orientation.VERTICAL,
-                            css_classes=["action-button"],
-                        )
-                    )
-        else:
-            button = Gtk.Button(label="Run", css_classes=["action-button"])
-            button.connect("clicked", self.run_task, action.title, action.script)
-            actions.append(button)
-
-        row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        row.append(title)
-        row.append(actions)
-        return row
-
-    def run_task(self, button: Gtk.Button, title: str, script: str):
-        """Pass a script along to the window's command runner"""
-
-        self.window.command_runner(title, script)

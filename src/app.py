@@ -93,7 +93,10 @@ class JankPortalWindow(Adw.ApplicationWindow):
             if countdown:
                 self.command_label.props.label = f"[Exited], hiding in {countdown}s…"
                 return GLib.SOURCE_CONTINUE
+
             self.bottom_sheet.props.open = False
+            # Not sure if bad things happen if you connect a handler up to a signal
+            # multiple times, so unplug it here
             self.vte.disconnect_by_func(self.on_contents_changed)
             return GLib.SOURCE_REMOVE
 
@@ -102,7 +105,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
             print(f"Command returned non-zero status: {status}", file=sys.stderr)
 
     def on_spawn_complete(
-        self, terminal: Vte.Terminal | None, pid: int, error: GLib.Error | None
+        self, terminal: Vte.Terminal, pid: int, error: GLib.Error | None
     ):
         """Wire up VTE contents-changed signal after script is spawned"""
 
@@ -147,7 +150,7 @@ class JankPortalApp(Adw.Application):
 
     def __init__(self, **kwargs: Any):
         super().__init__(
-            application_id="com.github.gminteer.jankportal",
+            application_id="io.github.gminteer.jankportal",
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
             **kwargs,
         )
