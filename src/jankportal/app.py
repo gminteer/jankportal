@@ -1,11 +1,10 @@
 import os
-import subprocess
 import sys
+from pathlib import Path
 
 import gi
 
-from ostree import OSTreeUI
-from yafti import YaftiUI
+from .lib import RES_PATH
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -16,29 +15,17 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Vte  # noqa: E402
 # Wait until Vte resolves as a GObject that exists
 GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
 
+# Load GTK resources
+resource_path = Path(__file__).parent / "resources.gresource"
+resource = Gio.Resource.load(str(resource_path))
+Gio.resources_register(resource)
 
-def compile_blp(blp: str):
-    """Compile GTK Blueprint into XML"""
-
-    try:
-        result = subprocess.run(
-            ["blueprint-compiler", "compile", blp],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout
-
-    except FileNotFoundError:
-        print("blueprint-compiler not in $PATH", file=sys.stderr)
-        sys.exit(1)
-
-    except subprocess.CalledProcessError as error:
-        print(f"Blueprint error: {error.stderr}", file=sys.stderr)
-        sys.exit(1)
+# Need resources loaded first
+from .ostree import OSTreeUI  # noqa: E402
+from .yafti import YaftiUI  # noqa: E402
 
 
-@Gtk.Template(string=compile_blp("src/ui/app.blp"))
+@Gtk.Template(resource_path=f"{RES_PATH}/app.ui")
 class JankPortalWindow(Adw.ApplicationWindow):
     """Main window for Jank Portal"""
 
@@ -158,7 +145,7 @@ class JankPortalApp(Adw.Application):
         """Load CSS and main window, show main window"""
 
         css = Gtk.CssProvider()
-        css.load_from_path("src/ui/app.css")
+        css.load_from_resource(f"{RES_PATH}/app.css")
         display = Gdk.Display.get_default()
         if display:
             Gtk.StyleContext.add_provider_for_display(
@@ -168,7 +155,6 @@ class JankPortalApp(Adw.Application):
             )
         win = JankPortalWindow(application=self)
         win.append_components()
-        win.show_error("Test toast please ignore")
         win.present()
 
 

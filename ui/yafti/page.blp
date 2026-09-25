@@ -1,0 +1,21 @@
+using Gtk 4.0;
+
+template $YaftiPage: ScrolledWindow {
+    hscrollbar-policy: never;
+    vscrollbar-policy: automatic;
+    propagate-natural-height: true;
+    child: Box {
+      orientation: vertical;
+      valign: start;
+
+      Label description {
+        label: _("Template");
+        styles ["heading"]
+      }
+
+      ListBox action_list {
+        selection-mode: none;
+        styles ["boxed-list", "root-list"]
+      }
+    };
+}

@@ -1,0 +1,15 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $OSTreeRow: Adw.ExpanderRow {
+    [prefix]
+    Box icon_box {
+        width-request: 16;
+    }
+
+    [suffix]
+    Button changelog {
+      label: _("Changelog");
+      styles ["action-button"]
+    }
+}

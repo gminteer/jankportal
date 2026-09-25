@@ -1,0 +1,17 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $YaftiRow : Box {
+    orientation: vertical;
+    valign: start;
+
+    Adw.ActionRow header {
+        title: _("Template");
+    }
+
+    Box actions {
+        orientation: horizontal;
+        halign: end;
+        styles ["action-button-group"]
+    }
+}

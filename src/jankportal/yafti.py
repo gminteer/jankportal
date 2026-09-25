@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING, TypedDict, cast
 import gi
 import yaml
 
-from datatypes import ActionData, PageData
+from .lib import RES_PATH, ActionData, PageData
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from app import JankPortalWindow
-    from datatypes import YaftiType
+    from .app import JankPortalWindow
+    from .lib import YaftiType
 
 
 gi.require_version("Gtk", "4.0")
@@ -48,19 +48,20 @@ def create_model(file_name: str = "/usr/share/yafti/yafti.yml"):
         sys.exit(1)
 
 
+@Gtk.Template(resource_path=f"{RES_PATH}/yafti/row.ui")
+class YaftiRow(Gtk.Box):
+    __gtype_name__ = "YaftiRow"
+    header: Adw.ActionRow = Gtk.Template.Child()
+    actions: Gtk.Box = Gtk.Template.Child()
+
+
 def create_row(
     action: ActionData, on_button_clicked: Callable[[Gtk.Button, str, str], None]
 ):
-    """Create ActionRow widget from data in model"""
+    row = YaftiRow()
+    row.header.props.title = action.title
+    row.header.props.subtitle = action.description
 
-    title = Adw.ActionRow(
-        title=action.title, subtitle=action.description, valign=Gtk.Align.START
-    )
-
-    actions = Gtk.Box(halign=Gtk.Align.END, css_classes=["action-button-group"])
-
-    # Create buttons for each option if action has options, or just create
-    # a single button for the action's script
     if action.options:
         prev = None
         for index, option in enumerate(action.options):
@@ -73,9 +74,9 @@ def create_row(
             if prev:
                 button.set_group(prev)
             prev = button
-            actions.append(button)
+            row.actions.append(button)
             if index < action.options.get_n_items() - 1:
-                actions.append(
+                row.actions.append(
                     Gtk.Separator(
                         orientation=Gtk.Orientation.VERTICAL,
                         css_classes=["action-button"],
@@ -84,12 +85,16 @@ def create_row(
     else:
         button = Gtk.Button(label="Run", css_classes=["action-button"])
         button.connect("clicked", on_button_clicked, action.title, action.script)
-        actions.append(button)
+        row.actions.append(button)
 
-    row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-    row.append(title)
-    row.append(actions)
     return row
+
+
+@Gtk.Template(resource_path=f"{RES_PATH}/yafti/page.ui")
+class YaftiPage(Gtk.ScrolledWindow):
+    __gtype_name__ = "YaftiPage"
+    description: Gtk.Label = Gtk.Template.Child()
+    action_list: Gtk.ListBox = Gtk.Template.Child()
 
 
 def create_pages(
@@ -103,23 +108,15 @@ def create_pages(
     # Everything list for search func
     all_actions = Gio.ListStore(item_type=ActionData)
     filtered_model = Gtk.FilterListModel.new(all_actions, filter)
-    omni_list = Gtk.ListBox(
-        selection_mode=Gtk.SelectionMode.NONE,
-        valign=Gtk.Align.START,
-        css_classes=["boxed-list", "root-list"],
-    )
-    omni_list.bind_model(filtered_model, row_factory)
-    omni_scroll = Gtk.ScrolledWindow(
-        vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
-        propagate_natural_height=True,
-        child=omni_list,
-    )
+    search_page = YaftiPage()
+    search_page.description.props.label = "Search Results"
+    search_page.action_list.bind_model(filtered_model, row_factory)
     pages: list[TitledPage] = [
         {
             "title": "Search Results",
             "name": "search",
             "visible": False,
-            "page": omni_scroll,
+            "page": search_page,
         }
     ]
 
@@ -130,30 +127,13 @@ def create_pages(
             0,
             [screen.actions.get_item(i) for i in range(screen.actions.get_n_items())],
         )
-
-        # Make box to contain header and list view
-        container = Gtk.Box(
-            orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.START
-        )
-        container.append(Gtk.Label(label=screen.descrption, css_classes=["heading"]))
-
-        action_list = Gtk.ListBox(
-            selection_mode=Gtk.SelectionMode.NONE,
-            css_classes=["boxed-list", "root-list"],
-        )
-        action_list.bind_model(screen.actions, row_factory)
-        container.append(action_list)
+        page = YaftiPage()
+        page.action_list.bind_model(screen.actions, row_factory)
 
         # Bash together an internal name, since none are given in the YAML
         name = screen.title.lower().replace(" ", "-").replace("!", "")
-        # Wrap in a ScrolledWindow and add to ViewStack
-        scrollable = Gtk.ScrolledWindow(
-            vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
-            propagate_natural_height=True,
-            child=container,
-        )
         pages.append(
-            {"name": name, "title": screen.title, "visible": True, "page": scrollable}
+            {"name": name, "title": screen.title, "visible": True, "page": page}
         )
 
     return pages

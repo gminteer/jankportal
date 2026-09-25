@@ -1,23 +1,28 @@
 [project]
+dynamic = ["version"]
 name = "jankportal"
-version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "blueprint-compiler>=0.22.2",
     "markdown>=3.10.3",
     "pygobject-stubs>=2.17.0",
     "pyyaml>=6.0.3",
     "requests>=2.34.2",
 ]
+[dependency-groups]
+dev = [
+    "blueprint-compiler>=0.22.2",
+    "hatchling>=1.32.4",
+    "uv-dynamic-versioning>=0.14.1",
+]
 
-[project.scripts]
-app = "app:main"
+[project.gui-scripts]
+jankportal = "jankportal.app:main"
 
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
 
 [tool.pyright]
 reportMissingModuleSource = false
@@ -61,5 +66,15 @@ indent-style = "space"
 quote-style = "double"
 skip-magic-trailing-comma = false
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.hooks.custom]
+path = "hatch_build.py"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+fallback-version = "0.1.0"
+vcs = "git"
+style = "pep440"
+metadata = true
+dirty = true

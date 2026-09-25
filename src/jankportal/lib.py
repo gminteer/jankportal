@@ -5,6 +5,7 @@ from typing import NotRequired, TypedDict
 
 from gi.repository import Gio, GLib, GObject
 
+RES_PATH = "/io/github/gminteer/jankportal"
 # OSTree types
 DeploymentType = TypedDict(
     "DeploymentType",

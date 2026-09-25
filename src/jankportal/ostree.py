@@ -7,12 +7,12 @@ import gi
 import markdown
 import requests
 
-from datatypes import DeploymentData
+from .lib import RES_PATH, DeploymentData
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from app import JankPortalWindow
+    from .app import JankPortalWindow
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -119,6 +119,33 @@ def get_tags(image: str) -> tuple[list[str], list[str]]:
         sys.exit(1)
 
 
+@Gtk.Template(resource_path=f"{RES_PATH}/ostree/row.ui")
+class OSTreeRow(Adw.ExpanderRow):
+    __gtype_name__ = "OSTreeRow"
+    icon_box: Gtk.Box = Gtk.Template.Child()
+    changelog: Gtk.Button = Gtk.Template.Child()
+
+
+@Gtk.Template(resource_path=f"{RES_PATH}/ostree/pin_list.ui")
+class OSTreePinList(Gtk.ListBox):
+    __gtype_name__ = "OSTreePinList"
+    pinned: Adw.SwitchRow = Gtk.Template.Child()
+
+
+@Gtk.Template(resource_path=f"{RES_PATH}/ostree/overlay_list.ui")
+class OSTreeOverlayList(Gtk.Box):
+    __gtype_name__ = "OSTreeOverlayList"
+    list: Gtk.ListBox = Gtk.Template.Child()
+
+
+@Gtk.Template(resource_path=f"{RES_PATH}/ostree/page.ui")
+class OSTreePage(Gtk.ScrolledWindow):
+    __gtype_name__ = "OSTreePage"
+    container: Gtk.Box = Gtk.Template.Child()
+    image: Adw.ComboRow = Gtk.Template.Child()
+    tag: Adw.ComboRow = Gtk.Template.Child()
+
+
 def create_row(
     deployment: DeploymentData,
     show_changelog: Callable[[Gtk.Button, str], None],
@@ -127,58 +154,36 @@ def create_row(
 ):
     """Create expander rows for each deployment"""
 
-    subtitle = ""
+    row = OSTreeRow()
+    row.props.title = f"{deployment.index}: Version {deployment.version}"
     if len(deployment.overlays) > 0:
-        subtitle = f"({len(deployment.overlays)} overlaid packages)"
-    dep_row = Adw.ExpanderRow(
-        title=f"{deployment.index}: Version {deployment.version}", subtitle=subtitle
-    )
+        row.props.subtitle = f"({len(deployment.overlays)} overlaid packages)"
 
-    # Prefix with icons for currently booted / staged deployments
-    icon_box = Gtk.Box(width_request=16)
     if deployment.booted:
         icon = Gtk.Image.new_from_icon_name("system-shutdown-symbolic")
         icon.add_css_class("success")
         icon.props.tooltip_text = "Currently booted"
-        icon_box.append(icon)
+        row.icon_box.append(icon)
     elif deployment.staged:
         icon = Gtk.Image.new_from_icon_name("system-reboot-symbolic")
         icon.add_css_class("warning")
         icon.props.tooltip_text = "Staged update (pending reboot)"
-        icon_box.append(icon)
-    dep_row.add_prefix(icon_box)
+        row.icon_box.append(icon)
 
-    # Suffix with button for changelog
-    changelog_btn = Gtk.Button(label="Changelog", css_classes=["action-button"])
-    changelog_btn.connect("clicked", show_changelog, deployment.version)
-    dep_row.add_suffix(changelog_btn)
+    row.changelog.connect("clicked", show_changelog, deployment.version)
 
     # Add subrow for toggling pinned status
-    pin_list = Gtk.ListBox(
-        selection_mode=Gtk.SelectionMode.NONE,
-        css_classes=["boxed-list", "sub-list"],
-    )
-    pinned_row = Adw.SwitchRow(title="Pin Deployment", active=deployment.pinned)
-    pinned_row.connect("notify::active", toggle_ostree_pin, deployment.index)
-    pin_list.append(pinned_row)
-    dep_row.add_row(pin_list)
+    pin = OSTreePinList()
+    pin.pinned.connect("notify::active", toggle_ostree_pin, deployment.index)
+    row.add_row(pin)
 
     # Add subrows for overlaid packages with remove buttons if deployment is booted
     if len(deployment.overlays) > 0:
-        overlay_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        overlay_box.append(
-            Gtk.Label(label="Overlaid Packages", css_classes=["heading"])
-        )
-
-        overlay_list = Gtk.ListBox(
-            selection_mode=Gtk.SelectionMode.NONE,
-            css_classes=["boxed-list", "sub-list"],
-        )
-        overlay_box.append(overlay_list)
+        overlays = OSTreeOverlayList()
 
         for overlay in deployment.overlays:
             overlay_row = Adw.ActionRow(title=overlay)
-            overlay_list.append(overlay_row)
+            overlays.list.append(overlay_row)
             if deployment.booted:
                 button = Gtk.Button(
                     child=Gtk.Image.new_from_icon_name("edit-delete-symbolic"),
@@ -187,8 +192,8 @@ def create_row(
                 button.connect("clicked", remove_overlay, overlay)
                 overlay_row.add_suffix(button)
 
-        dep_row.add_row(overlay_box)
-    return dep_row
+        row.add_row(overlays)
+    return row
 
 
 def create_page(
@@ -197,9 +202,10 @@ def create_page(
     tag: str,
     row_factory: Callable[[DeploymentData], Adw.ExpanderRow],
 ):
-    container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.START)
+    page = OSTreePage()
 
-    track_widget = Gtk.ListBox(css_classes=["boxed-list", "root-list"])
+    # Prevent users from going off the rails
+    # (only show nvidia/gnome images if currently on a matching image)
     filtered_images = [
         image
         for image in IMAGES
@@ -216,10 +222,10 @@ def create_page(
         if image_model.get_string(i) == current_image:
             index = i
             break
-    image_row = Adw.ComboRow(title="Image", model=image_model)
-    image_row.set_selected(index)
-    track_widget.append(image_row)
+    page.image.set_model(image_model)
+    page.image.set_selected(index)
 
+    # Only show branch tags
     branch_tags, _release_tags = get_tags(current_image)
     tag_model = Gtk.StringList.new(sorted(branch_tags))
 
@@ -229,24 +235,17 @@ def create_page(
         if tag_model.get_string(i) == tag:
             index = i
             break
-
-    tag_row = Adw.ComboRow(title="Tag", model=tag_model)
-    tag_row.set_selected(index)
-    track_widget.append(tag_row)
-    container.append(track_widget)
+    page.tag.set_model(tag_model)
+    page.tag.set_selected(index)
 
     deploy_list = Gtk.ListBox(
         selection_mode=Gtk.SelectionMode.NONE,
         css_classes=["boxed-list", "root-list"],
     )
     deploy_list.bind_model(model, row_factory)
-    container.append(deploy_list)
+    page.container.append(deploy_list)
 
-    return Gtk.ScrolledWindow(
-        propagate_natural_height=True,
-        vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
-        child=container,
-    )
+    return page
 
 
 class OSTreeUI:

@@ -1,0 +1,14 @@
+using Gtk 4.0;
+
+template $OSTreeOverlayList: Box {
+    orientation: vertical;
+    styles ["boxed-list", "sublist"]
+    Label {
+        label: _("Overlaid Packages");
+        styles ["heading"]
+    }
+    ListBox list {
+        selection-mode: none;
+        styles ["boxed-list", "sub-list"]
+    }
+}
