@@ -17,61 +17,62 @@ template $JankPortalWindow : Adw.ApplicationWindow {
                     placeholder-text: _("Search…");
                 };
             }
-
-            ToggleButton keep_vte_open {
-              tooltip-text: _("Keep command runner open after command exits");
-              icon-name: "window-pin-symbolic";
-              margin-top: 10;
-              margin-bottom: 10;
-              styles ["circular"]
-              clicked => $on_keep_vte_open_clicked();
-            }
         }
 
         Adw.ToastOverlay overlay {
-        Adw.BottomSheet bottom_sheet {
-            open: false;
-            can-close: false;
-            can-open: false;
-            show-drag-handle: false;
+            Adw.BottomSheet bottom_sheet {
+                open: false;
+                can-close: false;
+                can-open: false;
+                show-drag-handle: false;
 
-            content: Adw.OverlaySplitView {
-                sidebar: Adw.ViewSwitcherSidebar stack_switcher {
-                    stack: stack;
-                };
-                content: Adw.ViewStack stack {
-                    vhomogeneous: false;
-                };
-            };
-
-            sheet:  Adw.ToolbarView {
-                [top]
-                Adw.HeaderBar sheet_header{
-                    show-end-title-buttons: false;
-
-                    title-widget: Label command_label {
-                        label: _("");
-                        margin-bottom: 10;
-                        ellipsize: end;
-                        styles ["heading"]
+                content: Adw.OverlaySplitView {
+                    sidebar: Adw.ViewSwitcherSidebar stack_switcher {
+                        stack: stack;
                     };
-                }
+                    content: Adw.ViewStack stack {
+                        vhomogeneous: false;
+                    };
+                };
 
-                ScrolledWindow {
-                    propagate-natural-height: true;
+                sheet:  Adw.ToolbarView {
+                    [top]
+                    Adw.HeaderBar sheet_header{
+                        show-end-title-buttons: false;
 
-                    child: Adw.ClampScrollable {
-                        orientation: vertical;
-                        unit: sp;
-                        maximum-size: 400;
-                        vexpand: true;
-
-                        Vte.Terminal vte {
-                            vexpand: true;
+                        [end]
+                        ToggleButton keep_vte_open {
+                            tooltip-text: _("Keep command runner open after command exits");
+                            icon-name: "window-pin-symbolic";
+                            margin-top: 10;
+                            margin-bottom: 10;
+                            styles ["circular"]
+                            clicked => $on_keep_vte_open_clicked();
                         }
-                    };
-                }
-            };
+
+                        title-widget: Label command_label {
+                            label: _("");
+                            margin-bottom: 10;
+                            ellipsize: end;
+                            styles ["heading"]
+                        };
+                    }
+
+                    ScrolledWindow {
+                        propagate-natural-height: true;
+
+                        child: Adw.ClampScrollable {
+                            orientation: vertical;
+                            unit: sp;
+                            maximum-size: 400;
+                            vexpand: true;
+
+                            Vte.Terminal vte {
+                                vexpand: true;
+                            }
+                        };
+                    }
+                };
             }
         }
     };
