@@ -17,6 +17,7 @@ template $JankPortalWindow : Adw.ApplicationWindow {
                     placeholder-text: _("Search…");
                 };
             }
+
             ToggleButton keep_vte_open {
               tooltip-text: _("Keep command runner open after command exits");
               icon-name: "window-pin-symbolic";
@@ -27,6 +28,7 @@ template $JankPortalWindow : Adw.ApplicationWindow {
             }
         }
 
+        Adw.ToastOverlay overlay {
         Adw.BottomSheet bottom_sheet {
             open: false;
             can-close: false;
@@ -46,6 +48,7 @@ template $JankPortalWindow : Adw.ApplicationWindow {
                 [top]
                 Adw.HeaderBar sheet_header{
                     show-end-title-buttons: false;
+
                     title-widget: Label command_label {
                         label: _("");
                         margin-bottom: 10;
@@ -56,6 +59,7 @@ template $JankPortalWindow : Adw.ApplicationWindow {
 
                 ScrolledWindow {
                     propagate-natural-height: true;
+
                     child: Adw.ClampScrollable {
                         orientation: vertical;
                         unit: sp;
@@ -68,7 +72,7 @@ template $JankPortalWindow : Adw.ApplicationWindow {
                     };
                 }
             };
+            }
         }
     };
-
 }

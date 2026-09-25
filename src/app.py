@@ -58,6 +58,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
     search_bar: Gtk.SearchBar = Gtk.Template.Child()
     search_entry: Gtk.SearchEntry = Gtk.Template.Child()
     keep_vte_open: Gtk.ToggleButton = Gtk.Template.Child()
+    overlay: Adw.ToastOverlay = Gtk.Template.Child()
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
@@ -137,7 +138,11 @@ class JankPortalWindow(Adw.ApplicationWindow):
             callback=self.on_spawn_complete,
         )
 
-    def append_components(self):
+    def show_error(self, message: str) -> None:
+        toast = Adw.Toast.new(message)
+        self.overlay.add_toast(toast)
+
+    def append_components(self) -> None:
         """Add ViewStackPages to main window"""
 
         self.yafti_ui = YaftiUI(self)
@@ -169,6 +174,7 @@ class JankPortalApp(Adw.Application):
             )
         win = JankPortalWindow(application=self)
         win.append_components()
+        win.show_error("Test toast please ignore")
         win.present()
 
 
