@@ -1,7 +1,7 @@
 import json
 import subprocess
 import sys
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import gi
 import markdown
@@ -34,8 +34,6 @@ IMAGES = [
     "bazzite-dx-nvidia",
     "bazzite-dx-nvidia-gnome",
 ]
-
-RO = GObject.PARAM_READABLE
 
 
 def create_model():
@@ -124,7 +122,7 @@ def get_tags(image: str) -> tuple[list[str], list[str]]:
 def create_row(
     deployment: DeploymentData,
     show_changelog: Callable[[Gtk.Button, str], None],
-    toggle_ostree_pin: Callable[[Adw.SwitchRow, Any, int], None],
+    toggle_ostree_pin: Callable[[Adw.SwitchRow, GObject.ParamSpec, int], None],
     remove_overlay: Callable[[Gtk.Button, str], None],
 ):
     """Create expander rows for each deployment"""
@@ -276,7 +274,9 @@ class OSTreeUI:
         uri = f"https://api.github.com/repos/ublue-os/bazzite/releases/tags/{tag}"
         response = requests.get(uri)
         if response.status_code != 200:
-            print(f"Error retrieving changelog, received code {response.status_code}")
+            self.window.show_error(
+                f"Error retrieving changelog, received code {response.status_code}"
+            )
             return
         raw_changelog = response.json()["body"]
 
@@ -300,7 +300,9 @@ class OSTreeUI:
             f"Remove {overlay}", f"rpm-ostree uninstall {overlay}"
         )
 
-    def toggle_ostree_pin(self, row: Adw.SwitchRow, gparam_spec: Any, index: int):
+    def toggle_ostree_pin(
+        self, row: Adw.SwitchRow, g_param_spec: GObject.ParamSpec, index: int
+    ):
         """Send command to pin/unpin deployment to window's command runner"""
 
         self.window.command_runner(

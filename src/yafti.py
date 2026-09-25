@@ -100,10 +100,9 @@ def create_pages(
     def row_factory(action: ActionData):
         return create_row(action, on_button_clicked)
 
-    # Create everything list for search func
+    # Everything list for search func
     all_actions = Gio.ListStore(item_type=ActionData)
     filtered_model = Gtk.FilterListModel.new(all_actions, filter)
-
     omni_list = Gtk.ListBox(
         selection_mode=Gtk.SelectionMode.NONE,
         valign=Gtk.Align.START,
@@ -195,6 +194,7 @@ class YaftiUI:
 
         search_wrapper = window.stack.get_child_by_name("search")
         if not isinstance(search_wrapper, Gtk.Widget):
+            # This shouldn't be possible
             print("missing search page!", sys.stderr)
             sys.exit(1)
         self.search = window.stack.get_page(search_wrapper)

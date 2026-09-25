@@ -1,12 +1,9 @@
 import shlex
 import subprocess
 import sys
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 from gi.repository import Gio, GLib, GObject
-
-RO = GObject.PARAM_READABLE
-
 
 # OSTree types
 DeploymentType = TypedDict(
@@ -29,8 +26,8 @@ class DeploymentData(GObject.Object):
 
     __gtype_name__ = "DeploymentData"
 
-    def __init__(self, index: int, deployment: DeploymentType, **kwargs: Any):
-        super().__init__(**kwargs)
+    def __init__(self, index: int, deployment: DeploymentType):
+        super().__init__()
         self._data = deployment
         self._index = index
         self._overlays = [
@@ -38,27 +35,27 @@ class DeploymentData(GObject.Object):
             *deployment["requested-local-packages"],
         ]
 
-    @GObject.Property(type=int, default=0, flags=RO)
+    @GObject.Property(type=int, default=-1)
     def index(self):
         return self._index
 
-    @GObject.Property(type=str, default="", flags=RO)
-    def edition(self):
+    @GObject.Property(type=str, default="")
+    def image_ref(self):
         return self._data["container-image-reference"].split("/")[-1]
 
-    @GObject.Property(type=str, default="", flags=RO)
+    @GObject.Property(type=str, default="")
     def version(self):
         return self._data["version"]
 
-    @GObject.Property(type=bool, default=False, flags=RO)
+    @GObject.Property(type=bool, default=False)
     def pinned(self):
         return self._data["pinned"]
 
-    @GObject.Property(type=bool, default=False, flags=RO)
+    @GObject.Property(type=bool, default=False)
     def booted(self):
         return self._data["booted"]
 
-    @GObject.Property(type=bool, default=False, flags=RO)
+    @GObject.Property(type=bool, default=False)
     def staged(self):
         return self._data["staged"]
 
@@ -81,19 +78,19 @@ class OptionData(GObject.Object):
 
     __gtype_name__ = "OptionData"
 
-    def __init__(self, option: OptionType, **kwargs: Any):
-        super().__init__(**kwargs)
+    def __init__(self, option: OptionType):
+        super().__init__()
         self._option = option
 
-    @GObject.Property(type=str, default="", flags=RO)
+    @GObject.Property(type=str, default="")
     def id(self):
         return self._option["id"]
 
-    @GObject.Property(type=str, default="", flags=RO)
+    @GObject.Property(type=str, default="")
     def label(self):
         return GLib.markup_escape_text(self._option["label"])
 
-    @GObject.Property(type=str, default="", flags=RO)
+    @GObject.Property(type=str, default="")
     def script(self):
         return self._option["script"]
 
@@ -115,8 +112,8 @@ class ActionData(GObject.Object):
 
     __gtype_name__ = "ActionData"
 
-    def __init__(self, action: ActionType, **kwargs: Any):
-        super().__init__(**kwargs)
+    def __init__(self, action: ActionType):
+        super().__init__()
         self._action = action
         self._status = ""
         if "options" not in action:
@@ -125,23 +122,23 @@ class ActionData(GObject.Object):
         for option in action["options"]:
             self._options.append(OptionData(option))
 
-    @GObject.Property(type=str, default="", flags=RO)
+    @GObject.Property(type=str, default="")
     def id(self):
         return self._action["id"]
 
-    @GObject.Property(type=str, default="", flags=RO)
+    @GObject.Property(type=str, default="")
     def title(self):
         return GLib.markup_escape_text(self._action["title"])
 
-    @GObject.Property(type=str, default="", flags=RO)
+    @GObject.Property(type=str, default="")
     def description(self):
         return GLib.markup_escape_text(self._action["description"])
 
-    @GObject.Property(type=str, default="", flags=RO)
+    @GObject.Property(type=str, default="")
     def script(self):
         return self._action.get("script", "")
 
-    @GObject.Property(type=bool, default=False, flags=RO)
+    @GObject.Property(type=bool, default=False)
     def default(self):
         return self._action["default"]
 
@@ -152,7 +149,7 @@ class ActionData(GObject.Object):
         except AttributeError:
             return Gio.ListStore(item_type=OptionData)
 
-    @GObject.Property(type=str, default="", flags=RO)
+    @GObject.Property(type=str, default="")
     def status(self):
         """Run status_script to determine current status, cache results"""
 
@@ -160,7 +157,7 @@ class ActionData(GObject.Object):
             return ""
         if self._status:
             return self._status
-        # Kludge around the proton-plus status script
+        # Kludge for protonplus status script
         if self._action["status_script"].startswith("if "):
             s = ["bash", "--noprofile", "--norc", "-lc", self._action["status_script"]]
         else:
@@ -210,27 +207,27 @@ class PageData(GObject.Object):
 
     __gtype_name__ = "PageData"
 
-    def __init__(self, page: PageType, **kwargs: Any):
-        super().__init__(**kwargs)
+    def __init__(self, page: PageType):
+        super().__init__()
         self._page = page
         actions = Gio.ListStore(item_type=ActionData)
         for action in self._page["actions"]:
             actions.append(ActionData(action))
         self._actions = actions
 
-    @GObject.Property(type=str, default="", flags=RO)
+    @GObject.Property(type=str, default="")
     def title(self):
         return self._page["title"]
 
-    @GObject.Property(type=str, default="", flags=RO)
+    @GObject.Property(type=str, default="")
     def descrption(self):
         return self._page["description"]
 
-    @GObject.Property(type=bool, default=False, flags=RO)
+    @GObject.Property(type=bool, default=False)
     def hidden(self):
         return self._page["hidden"]
 
-    @GObject.Property(type=Gio.ListStore, default=None, flags=RO)
+    @GObject.Property(type=Gio.ListStore, default=None)
     def actions(self):
         return self._actions
 

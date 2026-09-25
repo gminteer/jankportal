@@ -1,7 +1,6 @@
 import os
 import subprocess
 import sys
-from typing import Any
 
 import gi
 
@@ -19,15 +18,8 @@ GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
 
 
 def compile_blp(blp: str):
-    """Compile GTK Blueprint
+    """Compile GTK Blueprint into XML"""
 
-    (runs blueprint-compiler in a subprocess)
-
-    :param blp: Blueprint filename
-    :type blp: str
-    :return: XML UI template
-    :rtype: str
-    """
     try:
         result = subprocess.run(
             ["blueprint-compiler", "compile", blp],
@@ -60,23 +52,27 @@ class JankPortalWindow(Adw.ApplicationWindow):
     keep_vte_open: Gtk.ToggleButton = Gtk.Template.Child()
     overlay: Adw.ToastOverlay = Gtk.Template.Child()
 
-    def __init__(self, **kwargs: Any):
-        super().__init__(**kwargs)
+    def __init__(self, application: Adw.Application):
+        super().__init__(application=application)
         self.vte.connect("child-exited", self.on_child_exited)
         self.search_entry.set_key_capture_widget(self)
         self._vte_is_running = False
 
     @Gtk.Template.Callback()
     def on_keep_vte_open_clicked(self, button: Gtk.ToggleButton):
+        """Change button icon, close VTE sheet if unpinned and VTE not active"""
+
         if self.keep_vte_open.props.active:
             self.keep_vte_open.props.icon_name = "window-unpin-symbolic"
             return
         self.keep_vte_open.props.icon_name = "window-pin-symbolic"
+
         if not self._vte_is_running and self.bottom_sheet.props.open:
+            self.vte.disconnect_by_func(self.on_contents_changed)
             self.bottom_sheet.props.open = False
 
     def on_child_exited(self, terminal: Vte.Terminal, status: int):
-        """Delay, then hide terminal window after script exit"""
+        """Countdown from DELAY, then close VTE sheet and unwire bottom sheet opener"""
 
         self._vte_is_running = False
         if self.keep_vte_open.props.active:
@@ -87,7 +83,6 @@ class JankPortalWindow(Adw.ApplicationWindow):
         self.command_label.props.label = f"[Exited], hiding in {DELAY}s…"
         countdown = DELAY
 
-        # Hide bottom sheet, unwire bottom sheet opener
         def delayed_close():
             nonlocal countdown
             countdown -= 1
@@ -103,7 +98,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
 
         GLib.timeout_add_seconds(1, delayed_close)
         if status != 0:
-            print(f"Command returned non-zero status: {status}", file=sys.stderr)
+            self.show_error(f"Command returned non-zero status: {status}")
 
     def on_spawn_complete(
         self, terminal: Vte.Terminal, pid: int, error: GLib.Error | None
@@ -111,7 +106,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
         """Wire up VTE contents-changed signal after script is spawned"""
 
         if error:
-            print(f"error: {error.message}", file=sys.stderr)
+            self.show_error(f"error: {error.message}")
             return
 
         self._vte_is_running = True
@@ -123,7 +118,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
         self.bottom_sheet.props.open = True
         self.vte.grab_focus()
 
-    def command_runner(self, title: str, script: str):
+    def command_runner(self, title: str, script: str) -> None:
         """Pass script to terminal widget"""
 
         self.command_label.props.label = title
@@ -153,11 +148,10 @@ class JankPortalWindow(Adw.ApplicationWindow):
 class JankPortalApp(Adw.Application):
     """App class for Jank Portal"""
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self):
         super().__init__(
             application_id="io.github.gminteer.jankportal",
             flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
-            **kwargs,
         )
 
     def do_activate(self):
