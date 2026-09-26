@@ -1,0 +1,22 @@
+using Gtk 4.0;
+using Adw 1;
+using WebKit 6.0;
+
+template $ChangelogDialog : Adw.Dialog {
+    follows-content-size: false;
+
+    child: Adw.ToolbarView {
+        [top]
+        Adw.HeaderBar {
+            title-widget: Adw.WindowTitle bar {
+                title: _("Changes");
+            };
+        }
+
+        content: WebKit.WebView web_view {
+            width-request: 1000;
+            height-request: 500;
+        };
+
+    };
+}

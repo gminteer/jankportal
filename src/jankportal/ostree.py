@@ -20,6 +20,8 @@ gi.require_version("WebKit", "6.0")
 
 from gi.repository import Adw, Gio, GObject, Gtk, WebKit  # noqa: E402
 
+GObject.type_ensure(WebKit.WebView.__gtype__)  # type: ignore
+
 IMAGES = [
     "bazzite",
     "bazzite-deck",
@@ -250,6 +252,13 @@ def create_page(
     return page
 
 
+@Gtk.Template(resource_path=f"{RES_PATH}/ostree/changelog_dialog.ui")
+class ChangelogDialog(Adw.Dialog):
+    __gtype_name__ = "ChangelogDialog"
+    bar: Adw.WindowTitle = Gtk.Template.Child()
+    web_view: WebKit.WebView = Gtk.Template.Child()
+
+
 class OSTreeUI:
     def __init__(self, window: JankPortalWindow):
         """Builds ViewStackPage based on rpm-ostree status, appends to window.stack"""
@@ -272,6 +281,7 @@ class OSTreeUI:
         """Show changelog in an AdwDialog overlay"""
 
         # Get release notes for whichever version was selected
+        # and convert to an HTML document
         uri = f"https://api.github.com/repos/ublue-os/bazzite/releases/tags/{tag}"
         response = requests.get(uri)
         if response.status_code != 200:
@@ -280,18 +290,12 @@ class OSTreeUI:
             )
             return
         raw_changelog = response.json()["body"]
-
-        # Convert to HTML and feed to a WebView
-        changelog = markdown.markdown(raw_changelog, extensions=["extra", "codehilite"])
-        web_view = WebKit.WebView(width_request=1000, height_request=500)
-        web_view.load_html(html_template(changelog))
-
-        # Wrap the WebView in a ToolbarView
-        dialog_content = Adw.ToolbarView(content=web_view)
-        dialog_content.add_top_bar(
-            Adw.HeaderBar(title_widget=Adw.WindowTitle.new("Changes", f"v{tag}"))
+        changelog = html_template(
+            markdown.markdown(raw_changelog, extensions=["extra", "codehilite"])
         )
-        dialog = Adw.Dialog(child=dialog_content, follows_content_size=True)
+        dialog = ChangelogDialog()
+        dialog.bar.props.subtitle = f"v{tag}"
+        dialog.web_view.load_html(changelog)
         dialog.present(self.window)
 
     def remove_overlay(self, button: Gtk.Button, overlay: str):
