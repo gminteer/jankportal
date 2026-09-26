@@ -14,7 +14,6 @@ class CustomBuildHook(BuildHookInterface):
         # Configuration paths
         resource_dir = Path("ui")
         output_dir = Path("src/jankportal")
-        output_dir.mkdir(parents=True, exist_ok=True)
 
         compiled_ui_files = []
 
@@ -44,15 +43,22 @@ class CustomBuildHook(BuildHookInterface):
             root, "gresource", prefix="/io/github/gminteer/jankportal"
         )
 
-        # Gather all files to include (.ui and .css)
-        files_to_include = list(resource_dir.rglob("*.ui")) + list(
-            resource_dir.rglob("*.css")
-        )
+        # Gather all files to include
+        files_to_include = [
+            *resource_dir.rglob("*.ui"),
+            *resource_dir.rglob("*.css"),
+            *resource_dir.rglob("*.svg"),
+        ]
 
         for file_path in files_to_include:
             # The path inside the XML needs to be relative to the XML file location
             rel_to_resource = file_path.relative_to(resource_dir)
-            file_el = ET.SubElement(gresource_el, "file")
+            attrib = (
+                {"preprocess": "xml-stripblanks"}
+                if not file_path.suffix == ".css"
+                else {}
+            )
+            file_el = ET.SubElement(gresource_el, "file", attrib=attrib)
             file_el.text = str(rel_to_resource)
 
         # Write XML file
