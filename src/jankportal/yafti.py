@@ -128,6 +128,7 @@ def create_pages(
             [screen.actions.get_item(i) for i in range(screen.actions.get_n_items())],
         )
         page = YaftiPage()
+        page.description.props.label = screen.descrption
         page.action_list.bind_model(screen.actions, row_factory)
 
         # Bash together an internal name, since none are given in the YAML
