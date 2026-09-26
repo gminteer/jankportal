@@ -3,18 +3,6 @@ revision = 3
 requires-python = ">=3.14"
 
 [[package]]
-name = "blueprint-compiler"
-version = "0.22.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pygobject" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/89/ca/ea3b3c2ffff009a98ae918b87ccf5e31577cdf299d46fa3767b0fc540c90/blueprint_compiler-0.22.2.tar.gz", hash = "sha256:b3fb2b04fb06dabffad7957a371e48af296dfb60f8be157b1c0447c574950cf1", size = 168663, upload-time = "2026-07-10T22:22:31.963Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/14/5c/9f61bc2e82d7970dca4c38b727c4541449bd276660953298795fe0eb84a7/blueprint_compiler-0.22.2-py3-none-any.whl", hash = "sha256:f6107b34ca21daa209e8e26ce518269e2e332e674da6450ba882ca72d33d2f32", size = 171358, upload-time = "2026-07-10T22:22:30.567Z" },
-]
-
-[[package]]
 name = "certifi"
 version = "2026.7.22"
 source = { registry = "https://pypi.org/simple" }
@@ -166,7 +154,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "blueprint-compiler" },
     { name = "hatchling" },
     { name = "uv-dynamic-versioning" },
 ]
@@ -181,7 +168,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "blueprint-compiler", specifier = ">=0.22.2" },
     { name = "hatchling", specifier = ">=1.32.4" },
     { name = "uv-dynamic-versioning", specifier = ">=0.14.1" },
 ]

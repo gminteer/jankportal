@@ -12,7 +12,6 @@ dependencies = [
 ]
 [dependency-groups]
 dev = [
-    "blueprint-compiler>=0.22.2",
     "hatchling>=1.32.4",
     "uv-dynamic-versioning>=0.14.1",
 ]
