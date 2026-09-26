@@ -1,5 +1,6 @@
 import os
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
 import gi
@@ -64,9 +65,10 @@ class JankPortalWindow(Adw.ApplicationWindow):
             application_name="Jank Portal",
             developer_name="h3lmut",
             comments="yafti-gtk, re-imagined by a madman",
+            version=version("jankportal"),
             website="https://github.com/gminteer/jankportal#README",
             issue_url="https://github.com/gminteer/jankportal/issues",
-            copyright="©️ 2026 h3lmut",
+            copyright="© 2026 h3lmut",
             license_type=Gtk.License.GPL_3_0,
         )
         about.present(self)
