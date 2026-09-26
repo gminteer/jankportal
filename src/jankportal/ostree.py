@@ -196,10 +196,17 @@ def create_row(
     return row
 
 
+def find_in_string_list(model: Gtk.StringList, string: str):
+    for i in range(model.get_n_items()):
+        if model.get_string(i) == string:
+            return i
+    return -1
+
+
 def create_page(
     model: Gio.ListStore[DeploymentData],
     current_image: str,
-    tag: str,
+    current_tag: str,
     row_factory: Callable[[DeploymentData], Adw.ExpanderRow],
 ):
     page = OSTreePage()
@@ -216,27 +223,21 @@ def create_page(
     ]
     image_model = Gtk.StringList.new(sorted(filtered_images))
 
-    # There's gotta be a better way, maybe?
-    index = -1
-    for i in range(image_model.get_n_items()):
-        if image_model.get_string(i) == current_image:
-            index = i
-            break
-    page.image.set_model(image_model)
-    page.image.set_selected(index)
-
+    if index := find_in_string_list(image_model, current_image):
+        page.image.set_selected(index)
+    else:
+        image_model.append(current_image)
+        page.image.set_selected(image_model.get_n_items())
     # Only show branch tags
     branch_tags, _release_tags = get_tags(current_image)
     tag_model = Gtk.StringList.new(sorted(branch_tags))
 
-    # I mean it works, but it's not very pretty...
-    index = -1
-    for i in range(tag_model.get_n_items()):
-        if tag_model.get_string(i) == tag:
-            index = i
-            break
     page.tag.set_model(tag_model)
-    page.tag.set_selected(index)
+    if index := find_in_string_list(tag_model, current_tag):
+        page.tag.set_selected(index)
+    else:
+        tag_model.append(current_tag)
+        page.tag.set_selected(tag_model.get_n_items())
 
     deploy_list = Gtk.ListBox(
         selection_mode=Gtk.SelectionMode.NONE,
