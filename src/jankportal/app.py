@@ -46,6 +46,11 @@ class JankPortalWindow(Adw.ApplicationWindow):
         self.search_entry.set_key_capture_widget(self)
         self._vte_is_running = False
 
+    def _close_vte(self):
+        self.vte.disconnect_by_func(self.on_contents_changed)
+        self.vte.reset(clear_history=True, clear_tabstops=True)
+        self.bottom_sheet.props.open = False
+
     @Gtk.Template.Callback()
     def on_keep_vte_open_clicked(self, button: Gtk.ToggleButton):
         """Change button icon, close VTE sheet if unpinned and VTE not active"""
@@ -56,8 +61,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
         self.keep_vte_open.props.icon_name = "window-pin-symbolic"
 
         if not self._vte_is_running and self.bottom_sheet.props.open:
-            self.vte.disconnect_by_func(self.on_contents_changed)
-            self.bottom_sheet.props.open = False
+            self._close_vte()
 
     @Gtk.Template.Callback()
     def on_about_clicked(self, button: Gtk.Button):
@@ -78,7 +82,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
 
         self._vte_is_running = False
         if self.keep_vte_open.props.active:
-            self.command_label.props.label = "[Exited], unpin to close window"
+            self.command_label.props.label = "[Exited], unpin to close"
             return
 
         DELAY = 3
@@ -86,16 +90,17 @@ class JankPortalWindow(Adw.ApplicationWindow):
         countdown = DELAY
 
         def delayed_close():
+            if self.keep_vte_open.props.active:
+                self.command_label.props.label = "[Exited], unpin to close"
+                return GLib.SOURCE_REMOVE
+
             nonlocal countdown
             countdown -= 1
             if countdown:
                 self.command_label.props.label = f"[Exited], hiding in {countdown}s…"
                 return GLib.SOURCE_CONTINUE
 
-            self.bottom_sheet.props.open = False
-            # Not sure if bad things happen if you connect a handler up to a signal
-            # multiple times, so unplug it here
-            self.vte.disconnect_by_func(self.on_contents_changed)
+            self._close_vte()
             return GLib.SOURCE_REMOVE
 
         GLib.timeout_add_seconds(1, delayed_close)
