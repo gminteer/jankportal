@@ -223,6 +223,7 @@ def create_page(
     ]
     image_model = Gtk.StringList.new(sorted(filtered_images))
 
+    page.image.set_model(image_model)
     if index := find_in_string_list(image_model, current_image):
         page.image.set_selected(index)
     else:
