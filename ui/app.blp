@@ -17,6 +17,12 @@ template $JankPortalWindow : Adw.ApplicationWindow {
                     placeholder-text: _("Search…");
                 };
             }
+            [end]
+            Button {
+                icon-name: "xsi-help-about-symbolic";
+                tooltip-text: _("About");
+                clicked => $on_about_clicked();
+            }
         }
 
         Adw.ToastOverlay overlay {

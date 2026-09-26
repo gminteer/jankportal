@@ -147,7 +147,9 @@ class ActionData(GObject.Object):
     def default(self):
         return self._action["default"]
 
-    @property
+    @GObject.Property(
+        type=Gio.ListStore[OptionData], default=Gio.ListStore(item_type=OptionData)
+    )
     def options(self):
         try:
             return self._options
@@ -163,6 +165,7 @@ class ActionData(GObject.Object):
         if self._status:
             return self._status
         # Kludge for protonplus status script
+        # (the rest of the "scripts" work fine without bash loaded)
         if self._action["status_script"].startswith("if "):
             s = ["bash", "--noprofile", "--norc", "-lc", self._action["status_script"]]
         else:

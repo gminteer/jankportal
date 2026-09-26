@@ -65,8 +65,9 @@ def create_row(
     if action.options:
         prev = None
         for index, option in enumerate(action.options):
+            label = option.id.replace("-", " ").title()
             button = Gtk.ToggleButton(
-                label=option.id.replace("-", " ").title(),
+                label=label,
                 active=option.id == action.status,
                 css_classes=["action-button"],
             )

@@ -12,7 +12,7 @@ gi.require_version("Vte", "3.91")
 
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Vte  # noqa: E402
 
-# Wait until Vte resolves as a GObject that exists
+# Wait until VTE resolves
 GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
 
 # Load GTK resources
@@ -58,6 +58,19 @@ class JankPortalWindow(Adw.ApplicationWindow):
             self.vte.disconnect_by_func(self.on_contents_changed)
             self.bottom_sheet.props.open = False
 
+    @Gtk.Template.Callback()
+    def on_about_clicked(self, button: Gtk.Button):
+        about = Adw.AboutDialog(
+            application_name="Jank Portal",
+            developer_name="h3lmut",
+            comments="yafti-gtk, re-imagined by a madman",
+            website="https://github.com/gminteer/jankportal#README",
+            issue_url="https://github.com/gminteer/jankportal/issues",
+            copyright="©️ 2026 h3lmut",
+            license_type=Gtk.License.GPL_3_0,
+        )
+        about.present(self)
+
     def on_child_exited(self, terminal: Vte.Terminal, status: int):
         """Countdown from DELAY, then close VTE sheet and unwire bottom sheet opener"""
 
@@ -99,7 +112,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
         self._vte_is_running = True
         self.vte.connect("contents-changed", self.on_contents_changed)
 
-    def on_contents_changed(self, terminal: Vte.Terminal | None):
+    def on_contents_changed(self, terminal: Vte.Terminal):
         """Show terminal widget if script has output anything"""
 
         self.bottom_sheet.props.open = True
@@ -161,7 +174,3 @@ class JankPortalApp(Adw.Application):
 def main():
     app = JankPortalApp()
     return app.run(sys.argv)
-
-
-if __name__ == "__main__":
-    main()
