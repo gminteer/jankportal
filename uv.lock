@@ -147,7 +147,6 @@ name = "jankportal"
 source = { editable = "." }
 dependencies = [
     { name = "markdown" },
-    { name = "pygobject-stubs" },
     { name = "pyyaml" },
     { name = "requests" },
 ]
@@ -155,13 +154,13 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "hatchling" },
+    { name = "pygobject-stubs" },
     { name = "uv-dynamic-versioning" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "markdown", specifier = ">=3.10.3" },
-    { name = "pygobject-stubs", specifier = ">=2.17.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.34.2" },
 ]
@@ -169,6 +168,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "hatchling", specifier = ">=1.32.4" },
+    { name = "pygobject-stubs", specifier = ">=2.17.0" },
     { name = "uv-dynamic-versioning", specifier = ">=0.14.1" },
 ]
 
