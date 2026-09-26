@@ -70,6 +70,15 @@ def create_row(
                 active=option.id == action.status,
                 css_classes=["action-button"],
             )
+            if not action.has_status_script:
+                icon = Gtk.Image.new_from_icon_name("dialog-question-symbolic")
+                icon.add_css_class("warning")
+                icon.props.tooltip_text = "Action has no status script"
+                label = Gtk.Label.new(label)
+                box = Gtk.Box(spacing=10)
+                box.append(icon)
+                box.append(label)
+                button.set_child(box)
             button.connect("clicked", on_button_clicked, option.label, option.script)
             if prev:
                 button.set_group(prev)

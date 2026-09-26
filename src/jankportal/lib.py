@@ -123,6 +123,10 @@ class ActionData(GObject.Object):
         for option in action["options"]:
             self._options.append(OptionData(option))
 
+    @property
+    def has_status_script(self):
+        return "status_script" in self._action
+
     @GObject.Property(type=str, default="")
     def id(self):
         return self._action["id"]
