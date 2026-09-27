@@ -2,7 +2,10 @@ import shlex
 import subprocess
 from typing import NotRequired, TypedDict
 
-from gi.repository import Gio, GLib, GObject, Gtk
+import gi
+
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gio, GLib, GObject, Gtk  # noqa: E402
 
 # Resources
 RES_PATH = "/io/github/gminteer/jankportal"
