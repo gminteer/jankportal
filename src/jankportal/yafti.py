@@ -86,6 +86,7 @@ def create_combo_row(
             break
 
         child = child.get_next_sibling()
+
     if not action.has_status_script:
         row.add_suffix(no_status())
     row.add_suffix(drop_down)
@@ -121,8 +122,7 @@ def create_button_group_row(
     for index, option in enumerate(action.options):
         label = option.id.replace("-", " ").title()
         button = Gtk.ToggleButton(
-            label=label,
-            css_classes=["action-button"],
+            label=label, css_classes=["action-button"], valign=Gtk.Align.CENTER
         )
         button.connect("clicked", callback, option.label, option.script)
         if prev:
@@ -134,6 +134,7 @@ def create_button_group_row(
                 Gtk.Separator(
                     orientation=Gtk.Orientation.VERTICAL,
                     css_classes=["action-button"],
+                    valign=Gtk.Align.CENTER,
                 )
             )
         try:
