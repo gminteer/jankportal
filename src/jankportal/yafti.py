@@ -58,9 +58,9 @@ def create_model(
 
 
 def no_status():
-    icon = Gtk.Image.new_from_icon_name("dialog-question-symbolic")
+    icon = Gtk.Image.new_from_icon_name("emblem-important-symbolic")
     icon.add_css_class("warning")
-    icon.props.tooltip_text = "Action has no status script"
+    icon.props.tooltip_text = "Unable to determine status"
     return icon
 
 
@@ -258,6 +258,9 @@ class YaftiUI:
     def on_widget_activated(self, widget: Gtk.Widget, title: str, script: str):
         """Pass a script along to the window's command runner"""
 
+        # Ignore activation if the widget is an already active ToggleButton
+        if isinstance(widget, Gtk.ToggleButton) and widget.props.active:
+            return
         self.window.command_runner(title, script)
 
     def on_search_changed(self, entry: Gtk.SearchEntry):
