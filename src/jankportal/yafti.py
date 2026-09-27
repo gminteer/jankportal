@@ -241,10 +241,8 @@ class YaftiUI:
         self.search_text = entry.props.text.strip().lower()
         self._filter.changed(Gtk.FilterChange.DIFFERENT)
         if self.search_text:
-            self.search.props.visible = True
             if self.window.stack.props.visible_child_name != "search":
                 self.last_page = self.window.stack.props.visible_child_name
             self.window.stack.props.visible_child_name = "search"
         else:
-            self.search.props.visible = False
             self.window.stack.props.visible_child_name = self.last_page
