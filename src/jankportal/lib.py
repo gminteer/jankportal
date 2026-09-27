@@ -198,6 +198,10 @@ class ActionData(GObject.Object):
             self._status = result.stdout.strip()
             return self._status
         except FileNotFoundError:
+            # Kludge for steamosctl only being in deck images
+            if s[0] == "steamosctl":
+                self._status = "NOT_A_DECK"
+                return self._status
             self._status = "NOT_FOUND"
             raise JankWarning(
                 title=f"'{self._action['title']}' error",
