@@ -4,7 +4,13 @@ A Clone of [Bazzite Portal](https://github.com/xXJSONDeruloXx/yafti-gtk), also u
 
 ## Installation
 
-To be figured out.
+To be figured out. I haven't started packaging releases yet, so currently installation is something like:
+
+1. Sort out external dependencies (see below)
+2. Clone this repo
+3. Run `uv sync` to install python dependencies
+4. Run `uv build` to build the GTK resource file JankPortal needs at runtime
+5. Then you should be able to start Jank Portal by running `uv run jankportal`
 
 ### External Dependencies
 
@@ -20,17 +26,21 @@ The only runtime dependency that'll need to be manually installed (and I suspect
 
 #### Build
 
-- [blueprint-compiler](https://gitlab.gnome.org/GNOME/blueprint-compiler) (`blueprint-compiler` Fedora package)
+- [uv](https://docs.astral.sh/uv/)
+- [hatchling](https://hatch.pypa.io/latest/)
+- [blueprint-compiler](https://gitlab.gnome.org/GNOME/blueprint-compiler) (Fedora package has the same name)
 - [glib-compile-resources](https://gnome.pages.gitlab.gnome.org/gtkmm-documentation/sec-gio-resource.html) (part of the `glib2-devel` Fedora package)
 
-Installing those packages in a Fedora distrobox and running `distrobox-export` seems to work with only minor issues (you may want/need to install `vte291-gtk4-devel` and `webkitgtk6.0-devel` in the distrobox to make blueprint-compiler happy)
+Installing `blueprint-compiler` and `glib2-devel` in a Fedora distrobox and running `distrobox-export` works as far as I can tell (you may want/need to install `vte291-gtk4-devel` and `webkitgtk6.0-devel` in the distrobox to make blueprint-compiler happy). `uv` can be installed with brew.
 
 ## Built With
 
+- [uv](https://docs.astral.sh/uv/) - Python package/project manager
+- [hatchling](https://hatch.pypa.io/latest/) - Extensible Python build back-end
 - [PyGObject](https://pygobject.gnome.org/) - Python bindings for [GTK4](https://docs.gtk.org/gtk4/overview.html) and [Libadwaita](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/)
 - [Blueprint](https://gnome.pages.gitlab.gnome.org/blueprint-compiler/) - Markup for GTK4 interfaces
-- [GNOME VTE library](https://gitlab.gnome.org/GNOME/vte) - Embeddable terminal component
-- [WebKitGTK](https://webkitgtk.org/) - Embeddable WebKit component (used to display changelogs)
+- [GNOME VTE library](https://gitlab.gnome.org/GNOME/vte) - Virtual terminal component
+- [WebKitGTK](https://webkitgtk.org/) - WebKit component
 - [Python-Markdown](https://python-markdown.github.io/) - Convert markdown to HTML
 - [github-markdown-css](https://cdnjs.com/libraries/github-markdown-css) - CSS library for markdown converted to HTML
 - [PyYAML](https://pyyaml.org/) - Python YAML framework
