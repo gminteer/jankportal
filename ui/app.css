@@ -28,3 +28,8 @@
     border-top-right-radius: 12px;
     border-bottom-right-radius: 12px;
 }
+
+.flat-dropdown > button:not(:checked):not(:hover) {
+  background: transparent;
+  box-shadow: none;
+}

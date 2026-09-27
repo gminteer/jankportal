@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, TypedDict, cast
 import gi
 import yaml
 
-from .lib import RES_PATH, ActionData, PageData
+from .lib import RES_PATH, ActionData, OptionData, PageData
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, GObject, Gtk  # noqa: E402
 
 
 class TitledPage(TypedDict):
@@ -48,21 +48,52 @@ def create_model(file_name: str = "/usr/share/yafti/yafti.yml"):
         sys.exit(1)
 
 
-@Gtk.Template(resource_path=f"{RES_PATH}/yafti/row.ui")
-class YaftiRow(Gtk.Box):
-    __gtype_name__ = "YaftiRow"
-    header: Adw.ActionRow = Gtk.Template.Child()
-    actions: Gtk.Box = Gtk.Template.Child()
+def create_row(action: ActionData, callback: Callable[[Gtk.Widget, str, str], None]):
+    """Create row widget for an action"""
 
+    def on_row_selected(row: Adw.ComboRow, gparam_spec: GObject.ParamSpec):
+        """Adapt on_row_selected event to the button style callback we received"""
+        option = cast("OptionData", row.get_selected_item())
+        callback(row, option.label, option.script)
 
-def create_row(
-    action: ActionData, on_button_clicked: Callable[[Gtk.Button, str, str], None]
-):
-    row = YaftiRow()
-    row.header.props.title = action.title
-    row.header.props.subtitle = action.description
+    no_status = Gtk.Image.new_from_icon_name("dialog-question-symbolic")
+    no_status.add_css_class("warning")
+    no_status.props.tooltip_text = "Action has no status script"
+    option_count = action.options.get_n_items()
 
-    if action.options:
+    if option_count > 3:
+        row = Adw.ActionRow(title=action.title, subtitle=action.description)
+        drop_down = Gtk.DropDown(
+            expression=Gtk.PropertyExpression.new(
+                OptionData,
+                expression=None,
+                property_name="label",
+            ),
+            model=action.options,
+        )
+        drop_down.add_css_class("flat-dropdown")
+        row.add_suffix(drop_down)
+        row.props.activatable_widget = drop_down
+        index = -1
+        if action.has_status_script:
+            for i in range(action.options.get_n_items()):
+                option = action.options.get_item(i)
+                if action.options.get_item(i).id == action.status:
+                    index = i
+                    break
+            if index >= 0:
+                drop_down.set_selected(index)
+
+        else:
+            row.add_prefix(no_status)
+        drop_down.connect("notify::selected-item", on_row_selected)
+    elif option_count > 0:
+        row = Adw.ActionRow(title=action.title, subtitle=action.description)
+        action_box = Gtk.Box()
+        action_box.add_css_class("action-button-group")
+        row.add_suffix(action_box)
+        if not action.has_status_script:
+            row.add_prefix(no_status)
         prev = None
         for index, option in enumerate(action.options):
             label = option.id.replace("-", " ").title()
@@ -71,31 +102,22 @@ def create_row(
                 active=option.id == action.status,
                 css_classes=["action-button"],
             )
-            if not action.has_status_script:
-                icon = Gtk.Image.new_from_icon_name("dialog-question-symbolic")
-                icon.add_css_class("warning")
-                icon.props.tooltip_text = "Action has no status script"
-                label = Gtk.Label.new(label)
-                box = Gtk.Box(spacing=10)
-                box.append(icon)
-                box.append(label)
-                button.set_child(box)
-            button.connect("clicked", on_button_clicked, option.label, option.script)
+            button.connect("clicked", callback, option.label, option.script)
             if prev:
                 button.set_group(prev)
             prev = button
-            row.actions.append(button)
+            action_box.append(button)
             if index < action.options.get_n_items() - 1:
-                row.actions.append(
+                action_box.append(
                     Gtk.Separator(
                         orientation=Gtk.Orientation.VERTICAL,
                         css_classes=["action-button"],
                     )
                 )
     else:
-        button = Gtk.Button(label="Run", css_classes=["action-button"])
-        button.connect("clicked", on_button_clicked, action.title, action.script)
-        row.actions.append(button)
+        row = Adw.ActionRow(title=action.title, subtitle=action.description)
+        row.props.activatable = True
+        row.connect("activated", callback, action.title, action.script)
 
     return row
 
@@ -109,11 +131,11 @@ class YaftiPage(Gtk.ScrolledWindow):
 
 def create_pages(
     model: Gio.ListStore[PageData],
-    on_button_clicked: Callable[[Gtk.Button, str, str], None],
+    callback: Callable[[Gtk.Widget, str, str], None],
     filter: Gtk.CustomFilter,
 ):
     def row_factory(action: ActionData):
-        return create_row(action, on_button_clicked)
+        return create_row(action, callback)
 
     # Everything list for search func
     all_actions = Gio.ListStore(item_type=ActionData)
@@ -176,7 +198,7 @@ class YaftiUI:
 
         self._filter = Gtk.CustomFilter.new(filter_func)
 
-        pages = create_pages(model, self.on_button_clicked, self._filter)
+        pages = create_pages(model, self.on_widget_activated, self._filter)
         for page in pages:
             bound_page = window.stack.add_titled(
                 child=page["page"], title=page["title"], name=page["name"]
@@ -190,7 +212,7 @@ class YaftiUI:
             sys.exit(1)
         self.search = window.stack.get_page(search_wrapper)
 
-    def on_button_clicked(self, button: Gtk.Button, title: str, script: str):
+    def on_widget_activated(self, widget: Gtk.Widget, title: str, script: str):
         """Pass a script along to the window's command runner"""
 
         self.window.command_runner(title, script)
