@@ -113,7 +113,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
         """Wire up VTE contents-changed signal after script is spawned"""
 
         if error:
-            self.show_error(f"error: {error.message}")
+            self.minor_error("Script failed to execute", error.message)
             return
 
         self._vte_is_running = True
@@ -140,9 +140,29 @@ class JankPortalWindow(Adw.ApplicationWindow):
             callback=self.on_spawn_complete,
         )
 
-    def show_error(self, message: str) -> None:
-        toast = Adw.Toast.new(message)
-        self.overlay.add_toast(toast)
+    def minor_error(self, title: str, message: str) -> None:
+        """Display non critical error"""
+
+        def on_response(dialog: Adw.AlertDialog, message: str):
+            pass
+
+        dialog = Adw.AlertDialog.new(title, message)
+        dialog.add_response("ok", "OK")
+        dialog.set_default_response("ok")
+        dialog.set_close_response("ok")
+        dialog.choose(self, cancellable=None, callback=on_response)
+
+    def panic(self, message: str) -> None:
+        """Display critical failure and exit program"""
+
+        def on_response(dialog: Adw.AlertDialog, response: str):
+            sys.exit(1)
+
+        dialog = Adw.AlertDialog.new("Fatal Error", message)
+        dialog.add_response("ok", "Close Program")
+        dialog.set_default_response("ok")
+        dialog.set_close_response("ok")
+        dialog.choose(self, cancellable=None, callback=on_response)
 
     def append_components(self) -> None:
         """Add ViewStackPages to main window"""

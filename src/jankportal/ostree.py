@@ -39,7 +39,7 @@ IMAGES = [
 ]
 
 
-def create_model():
+def create_model(panic_func: Callable[[str], None]):
     """Parse rpm-ostree status into Gio.ListStore"""
     try:
         model = Gio.ListStore(item_type=DeploymentData)
@@ -62,12 +62,12 @@ def create_model():
         return model, image, tag
 
     except FileNotFoundError:
-        print("rpm-ostree not in $PATH", file=sys.stderr)
-        sys.exit(1)
+        panic_func("rpm-ostree not in $PATH")
+        sys.exit(1)  # Never reached, makes type analysis happy
 
     except subprocess.CalledProcessError as error:
-        print(f"rpm-ostree error: {error.stderr}", file=sys.stderr)
-        sys.exit(1)
+        panic_func(f"rpm-ostree error: {error.stderr}")
+        sys.exit(1)  # Never reaced, makes type analysis happy
 
 
 def html_template(changelog: str):
@@ -90,7 +90,9 @@ def html_template(changelog: str):
 """
 
 
-def get_tags(image: str) -> tuple[list[str], list[str]]:
+def get_tags(
+    image: str, panic_func: Callable[[str], None]
+) -> tuple[list[str], list[str]]:
     """Get tags for a given image from skopeo, sorts them into branches and releases"""
 
     image_uri = f"docker://ghcr.io/ublue-os/{image}"
@@ -114,12 +116,12 @@ def get_tags(image: str) -> tuple[list[str], list[str]]:
         return branch_tags, release_tags
 
     except FileNotFoundError:
-        print("skopeo not in $PATH", file=sys.stderr)
-        sys.exit(1)
+        panic_func("skopeo not in $PATH")
+        sys.exit(1)  # Never reaced, makes type analysis happy
 
     except subprocess.CalledProcessError as error:
-        print(f"skopeo error: {error.stderr}", file=sys.stderr)
-        sys.exit(1)
+        panic_func(f"skopeo error: {error.stderr}")
+        sys.exit(1)  # Never reaced, makes type analysis happy
 
 
 @Gtk.Template(resource_path=f"{RES_PATH}/ostree/row.ui")
@@ -211,6 +213,7 @@ def create_page(
     current_image: str,
     current_tag: str,
     row_factory: Callable[[DeploymentData], Adw.ExpanderRow],
+    panic_func: Callable[[str], None],
 ):
     page = OSTreePage()
 
@@ -233,7 +236,7 @@ def create_page(
         image_model.append(current_image)
         page.image.set_selected(image_model.get_n_items())
     # Only show branch tags
-    branch_tags, _release_tags = get_tags(current_image)
+    branch_tags, _release_tags = get_tags(current_image, panic_func)
     tag_model = Gtk.StringList.new(sorted(branch_tags))
 
     page.tag.set_model(tag_model)
@@ -265,7 +268,7 @@ class OSTreeUI:
         """Builds ViewStackPage based on rpm-ostree status, appends to window.stack"""
 
         self.window = window
-        self.model, image, tag = create_model()
+        self.model, image, tag = create_model(window.panic)
 
         def row_factory(deployment: DeploymentData):
             return create_row(
@@ -275,7 +278,7 @@ class OSTreeUI:
                 self.remove_overlay,
             )
 
-        page = create_page(self.model, image, tag, row_factory)
+        page = create_page(self.model, image, tag, row_factory, window.panic)
         self.window.stack.add_titled(child=page, title="Deployments", name="ostree")
 
     def show_changelog(self, button: Gtk.Button, tag: str):
@@ -286,8 +289,8 @@ class OSTreeUI:
         uri = f"https://api.github.com/repos/ublue-os/bazzite/releases/tags/{tag}"
         response = requests.get(uri)
         if response.status_code != 200:
-            self.window.show_error(
-                f"Error retrieving changelog, received code {response.status_code}"
+            self.window.minor_error(
+                title=f"HTTP Error {response.status_code}", message=response.text
             )
             return
         raw_changelog = response.json()["body"]

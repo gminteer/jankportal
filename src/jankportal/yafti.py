@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, TypedDict, cast
 import gi
 import yaml
 
-from .lib import RES_PATH, ActionData, OptionData, PageData
+from .lib import RES_PATH, ActionData, JankWarning, OptionData, PageData
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -26,7 +26,9 @@ class TitledPage(TypedDict):
     page: Gtk.ScrolledWindow
 
 
-def create_model(file_name: str = "/usr/share/yafti/yafti.yml"):
+def create_model(
+    panic_func: Callable[[str], None], file_name: str = "/usr/share/yafti/yafti.yml"
+):
     """Parse YAFTI YML into Gio.ListStore"""
 
     try:
@@ -34,7 +36,7 @@ def create_model(file_name: str = "/usr/share/yafti/yafti.yml"):
         with path.open() as file:
             yafti = cast("YaftiType", yaml.safe_load(file))
             if not yafti:
-                print("Error parsing yafti", file=sys.stderr)
+                panic_func("Error parsing yafti")
                 sys.exit(1)
 
             model = Gio.ListStore(item_type=PageData)
@@ -44,11 +46,15 @@ def create_model(file_name: str = "/usr/share/yafti/yafti.yml"):
             return model
 
     except FileNotFoundError:
-        print(f"yafti scripts file not found at {file_name}", file=sys.stderr)
+        panic_func(f"yafti scripts file not found at {file_name}")
         sys.exit(1)
 
 
-def create_row(action: ActionData, callback: Callable[[Gtk.Widget, str, str], None]):
+def create_row(
+    action: ActionData,
+    callback: Callable[[Gtk.Widget, str, str], None],
+    error_func: Callable[[str, str], None],
+):
     """Create row widget for an action"""
 
     def on_row_selected(row: Adw.ComboRow, gparam_spec: GObject.ParamSpec):
@@ -72,15 +78,25 @@ def create_row(action: ActionData, callback: Callable[[Gtk.Widget, str, str], No
             model=action.options,
         )
         drop_down.add_css_class("flat-dropdown")
+        child = drop_down.get_first_child()
+        while child is not None:
+            if isinstance(child, Gtk.Popover):
+                child.props.halign = Gtk.Align.END
+                break
+            child = child.get_next_sibling()
+
         row.add_suffix(drop_down)
         row.props.activatable_widget = drop_down
         index = -1
         if action.has_status_script:
             for i in range(action.options.get_n_items()):
                 option = action.options.get_item(i)
-                if action.options.get_item(i).id == action.status:
-                    index = i
-                    break
+                try:
+                    if action.options.get_item(i).id == action.status:
+                        index = i
+                        break
+                except JankWarning as warning:
+                    error_func(warning.title, warning.message)
             if index >= 0:
                 drop_down.set_selected(index)
 
@@ -97,23 +113,26 @@ def create_row(action: ActionData, callback: Callable[[Gtk.Widget, str, str], No
         prev = None
         for index, option in enumerate(action.options):
             label = option.id.replace("-", " ").title()
-            button = Gtk.ToggleButton(
-                label=label,
-                active=option.id == action.status,
-                css_classes=["action-button"],
-            )
-            button.connect("clicked", callback, option.label, option.script)
-            if prev:
-                button.set_group(prev)
-            prev = button
-            action_box.append(button)
-            if index < action.options.get_n_items() - 1:
-                action_box.append(
-                    Gtk.Separator(
-                        orientation=Gtk.Orientation.VERTICAL,
-                        css_classes=["action-button"],
-                    )
+            try:
+                button = Gtk.ToggleButton(
+                    label=label,
+                    active=option.id == action.status,
+                    css_classes=["action-button"],
                 )
+                button.connect("clicked", callback, option.label, option.script)
+                if prev:
+                    button.set_group(prev)
+                prev = button
+                action_box.append(button)
+                if index < action.options.get_n_items() - 1:
+                    action_box.append(
+                        Gtk.Separator(
+                            orientation=Gtk.Orientation.VERTICAL,
+                            css_classes=["action-button"],
+                        )
+                    )
+            except JankWarning as warning:
+                error_func(warning.title, warning.message)
     else:
         row = Adw.ActionRow(title=action.title, subtitle=action.description)
         row.props.activatable = True
@@ -133,9 +152,10 @@ def create_pages(
     model: Gio.ListStore[PageData],
     callback: Callable[[Gtk.Widget, str, str], None],
     filter: Gtk.CustomFilter,
+    error_func: Callable[[str, str], None],
 ):
     def row_factory(action: ActionData):
-        return create_row(action, callback)
+        return create_row(action, callback, error_func)
 
     # Everything list for search func
     all_actions = Gio.ListStore(item_type=ActionData)
@@ -186,30 +206,28 @@ class YaftiUI:
         """Builds ViewStackPages based on YAFTI YML, appends to window.stack widget"""
 
         self.window = window
-        model = create_model()
+        model = create_model(window.panic)
 
         # Set up wiring for search function
         self.search_text = ""
         self.last_page = "welcome"
-        self.window.search_entry.connect("search-changed", self.on_search_changed)
+        self.window.search.connect("search-changed", self.on_search_changed)
 
         def filter_func(item: ActionData):
             return filter(item, self.search_text)
 
         self._filter = Gtk.CustomFilter.new(filter_func)
 
-        pages = create_pages(model, self.on_widget_activated, self._filter)
+        pages = create_pages(
+            model, self.on_widget_activated, self._filter, window.minor_error
+        )
         for page in pages:
             bound_page = window.stack.add_titled(
                 child=page["page"], title=page["title"], name=page["name"]
             )
             bound_page.props.visible = page["visible"]
 
-        search_wrapper = window.stack.get_child_by_name("search")
-        if not isinstance(search_wrapper, Gtk.Widget):
-            # This shouldn't be possible
-            print("missing search page!", sys.stderr)
-            sys.exit(1)
+        search_wrapper = cast("Gtk.Widget", window.stack.get_child_by_name("search"))
         self.search = window.stack.get_page(search_wrapper)
 
     def on_widget_activated(self, widget: Gtk.Widget, title: str, script: str):
@@ -220,7 +238,6 @@ class YaftiUI:
     def on_search_changed(self, entry: Gtk.SearchEntry):
         """Bind search entry text changes to GTK.CustomFilter changes"""
 
-        self.window.search_bar.props.search_mode_enabled = True
         self.search_text = entry.props.text.strip().lower()
         self._filter.changed(Gtk.FilterChange.DIFFERENT)
         if self.search_text:

@@ -1,11 +1,21 @@
 import shlex
 import subprocess
-import sys
 from typing import NotRequired, TypedDict
 
 from gi.repository import Gio, GLib, GObject
 
 RES_PATH = "/io/github/gminteer/jankportal"
+
+
+class JankWarning(UserWarning):
+    """Raised on non-fatal errors"""
+
+    def __init__(self, title: str, message: str):
+        super().__init__(self)
+        self.title = title
+        self.message = message
+
+
 # OSTree types
 DeploymentType = TypedDict(
     "DeploymentType",
@@ -164,14 +174,21 @@ class ActionData(GObject.Object):
             return ""
         if self._status:
             return self._status
-        # Kludge for protonplus status script
-        # (the rest of the "scripts" work fine without bash loaded)
-        if self._action["status_script"].startswith("if "):
-            s = ["bash", "--noprofile", "--norc", "-lc", self._action["status_script"]]
-        else:
-            s = shlex.split(self._action["status_script"])
-
+        s = []
         try:
+            # Kludge for protonplus status script
+            # (the rest of the "scripts" work fine without bash loaded)
+            if self._action["status_script"].startswith("if "):
+                s = [
+                    "bash",
+                    "--noprofile",
+                    "--norc",
+                    "-lc",
+                    self._action["status_script"],
+                ]
+            else:
+                s = shlex.split(self._action["status_script"])
+
             result = subprocess.run(
                 s,
                 capture_output=True,
@@ -180,25 +197,18 @@ class ActionData(GObject.Object):
             )
             self._status = result.stdout.strip()
             return self._status
-
         except FileNotFoundError:
-            print(
-                f"status_script for command '{self._action['id']}' not found: '{s[0]}'",
-                file=sys.stderr,
+            self._status = "NOT_FOUND"
+            raise JankWarning(
+                title=f"'{self._action['title']}' error",
+                message=f"Status command '{s[0]}' not found",
             )
-            self._status = "script_failed"
-            return self._status
-
         except subprocess.CalledProcessError as error:
-            print(
-                (
-                    f"status_script for command '{self._action['id']}' "
-                    f"returned error: {error.stderr}\n(command is '{s}')"
-                ),
-                file=sys.stderr,
+            self._status = "ERROR"
+            raise JankWarning(
+                title=f"'{self._action['title']}' error",
+                message=f"Status result: '{error.stderr}'",
             )
-            self._status = "script_failed"
-            return self._status
 
 
 class PageType(TypedDict):
