@@ -58,6 +58,8 @@ def create_model(
 
 
 def no_status():
+    """Make no status emblem for rows with options, but no status script"""
+
     icon = Gtk.Image.new_from_icon_name("emblem-important-symbolic")
     icon.add_css_class("warning")
     icon.props.tooltip_text = "Unable to determine status"
@@ -71,10 +73,10 @@ def create_combo_row(
 ):
     """Create an ActionRow with a DropDown"""
 
-    def on_row_selected(row: Adw.ComboRow, g_param_spec: GObject.ParamSpec):
+    def on_row_selected(drop_down: Gtk.DropDown, g_param_spec: GObject.ParamSpec):
         """Adapt on_row_selected event to the button style callback we received"""
-        option = cast("OptionData", row.get_selected_item())
-        callback(row, option.label, option.script)
+        option = cast("OptionData", drop_down.get_selected_item())
+        callback(drop_down, option.label, option.script)
 
     row = Adw.ActionRow(title=action.title, subtitle=action.description)
     drop_down = Gtk.DropDown(
