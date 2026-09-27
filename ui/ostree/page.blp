@@ -18,12 +18,24 @@ template $OSTreePage: ScrolledWindow {
         ListBox {
             styles ["boxed-list", "root-list"]
 
-            Adw.ComboRow image {
+            Adw.ActionRow {
                 title: _("Image");
+                activatable-widget: image;
+
+                [suffix]
+                Gtk.DropDown image {
+                    styles ["flat-dropdown"]
+                }
             }
 
-            Adw.ComboRow tag {
+            Adw.ActionRow {
                 title: _("Tag");
+                activatable-widget: tag;
+
+                [suffix]
+                Gtk.DropDown tag {
+                    styles ["flat-dropdown"]
+                }
             }
         }
 

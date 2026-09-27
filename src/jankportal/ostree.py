@@ -7,7 +7,7 @@ import gi
 import markdown
 import requests
 
-from .lib import RES_PATH, DeploymentData
+from .lib import RES_PATH, DeploymentData, end_align_drop_down_popover
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -147,8 +147,8 @@ class OSTreeOverlayList(Gtk.Box):
 class OSTreePage(Gtk.ScrolledWindow):
     __gtype_name__ = "OSTreePage"
     container: Gtk.Box = Gtk.Template.Child()
-    image: Adw.ComboRow = Gtk.Template.Child()
-    tag: Adw.ComboRow = Gtk.Template.Child()
+    image: Gtk.DropDown = Gtk.Template.Child()
+    tag: Gtk.DropDown = Gtk.Template.Child()
 
 
 def create_row(
@@ -216,6 +216,9 @@ def create_page(
     panic_func: Callable[[str], None],
 ):
     page = OSTreePage()
+    # Can't mess with encapsulated child widgets from the blueprint
+    end_align_drop_down_popover(page.image)
+    end_align_drop_down_popover(page.tag)
 
     # Prevent users from going off the rails
     # (only show nvidia/gnome images if currently on a matching image)

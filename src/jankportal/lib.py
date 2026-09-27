@@ -2,7 +2,7 @@ import shlex
 import subprocess
 from typing import NotRequired, TypedDict
 
-from gi.repository import Gio, GLib, GObject
+from gi.repository import Gio, GLib, GObject, Gtk
 
 # Resources
 RES_PATH = "/io/github/gminteer/jankportal"
@@ -15,6 +15,17 @@ class JankWarning(UserWarning):
         super().__init__(self)
         self.title = title
         self.message = message
+
+
+def end_align_drop_down_popover(drop_down: Gtk.DropDown) -> None:
+    """Set a DropDown's child PopOver to align with the end of the box"""
+    child = drop_down.get_first_child()
+    while child is not None:
+        if isinstance(child, Gtk.Popover):
+            child.props.halign = Gtk.Align.END
+            break
+
+        child = child.get_next_sibling()
 
 
 # OSTree types

@@ -5,7 +5,14 @@ from typing import TYPE_CHECKING, TypedDict, cast
 import gi
 import yaml
 
-from .lib import RES_PATH, ActionData, JankWarning, OptionData, PageData
+from .lib import (
+    RES_PATH,
+    ActionData,
+    JankWarning,
+    OptionData,
+    PageData,
+    end_align_drop_down_popover,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -79,13 +86,7 @@ def create_combo_row(
         model=action.options,
     )
     drop_down.add_css_class("flat-dropdown")
-    child = drop_down.get_first_child()
-    while child is not None:
-        if isinstance(child, Gtk.Popover):
-            child.props.halign = Gtk.Align.END
-            break
-
-        child = child.get_next_sibling()
+    end_align_drop_down_popover(drop_down)
 
     if not action.has_status_script:
         row.add_suffix(no_status())
