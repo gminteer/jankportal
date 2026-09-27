@@ -81,31 +81,32 @@ class JankPortalWindow(Adw.ApplicationWindow):
         """Countdown from DELAY, then close VTE sheet and unwire bottom sheet opener"""
 
         self._vte_is_running = False
+        title_prefix = "[Exited]" if status == 0 else f"[Exited with code {status}]"
         if self.keep_vte_open.props.active:
-            self.command_label.props.label = "[Exited], unpin to close"
+            self.command_label.props.label = f"{title_prefix}, unpin to close"
             return
 
         DELAY = 3
-        self.command_label.props.label = f"[Exited], hiding in {DELAY}s…"
+        self.command_label.props.label = f"{title_prefix}, hiding in {DELAY}s…"
         countdown = DELAY
 
         def delayed_close():
             if self.keep_vte_open.props.active:
-                self.command_label.props.label = "[Exited], unpin to close"
+                self.command_label.props.label = f"{title_prefix}, unpin to close"
                 return GLib.SOURCE_REMOVE
 
             nonlocal countdown
             countdown -= 1
             if countdown:
-                self.command_label.props.label = f"[Exited], hiding in {countdown}s…"
+                self.command_label.props.label = (
+                    f"{title_prefix}, hiding in {countdown}s…"
+                )
                 return GLib.SOURCE_CONTINUE
 
             self._close_vte()
             return GLib.SOURCE_REMOVE
 
         GLib.timeout_add_seconds(1, delayed_close)
-        if status != 0:
-            self.show_error(f"Command returned non-zero status: {status}")
 
     def on_spawn_complete(
         self, terminal: Vte.Terminal, pid: int, error: GLib.Error | None
