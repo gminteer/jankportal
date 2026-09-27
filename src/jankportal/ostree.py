@@ -71,7 +71,7 @@ def create_model(panic_func: Callable[[str], None]):
 
 
 def html_template(changelog: str):
-    """Wrap python-markdown generated HTML in an document with github-markdown.css"""
+    """Wrap python-markdown generated HTML in a document with github-markdown.css"""
 
     return f"""<!DOCTYPE html>
 <html>
