@@ -9,6 +9,12 @@ template $OSTreePage: ScrolledWindow {
     child: Box container {
         orientation: vertical;
         valign: start;
+        Label {
+            label: _("Current Track");
+            styles ["heading"]
+            margin-top: 10;
+        }
+
         ListBox {
             styles ["boxed-list", "root-list"]
 
@@ -19,6 +25,12 @@ template $OSTreePage: ScrolledWindow {
             Adw.ComboRow tag {
                 title: _("Tag");
             }
+        }
+
+        Label {
+            label: _("Deployments");
+            styles ["heading"]
+            margin-top: 10;
         }
     };
 }
