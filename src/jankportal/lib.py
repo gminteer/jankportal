@@ -4,6 +4,7 @@ from typing import NotRequired, TypedDict
 
 from gi.repository import Gio, GLib, GObject
 
+# Resources
 RES_PATH = "/io/github/gminteer/jankportal"
 
 

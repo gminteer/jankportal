@@ -50,6 +50,100 @@ def create_model(
         sys.exit(1)
 
 
+def no_status():
+    icon = Gtk.Image.new_from_icon_name("dialog-question-symbolic")
+    icon.add_css_class("warning")
+    icon.props.tooltip_text = "Action has no status script"
+    return icon
+
+
+def create_combo_row(
+    action: ActionData,
+    callback: Callable[[Gtk.Widget, str, str], None],
+    error_func: Callable[[str, str], None],
+):
+    """Create an ActionRow with a DropDown"""
+
+    def on_row_selected(row: Adw.ComboRow, g_param_spec: GObject.ParamSpec):
+        """Adapt on_row_selected event to the button style callback we received"""
+        option = cast("OptionData", row.get_selected_item())
+        callback(row, option.label, option.script)
+
+    row = Adw.ActionRow(title=action.title, subtitle=action.description)
+    drop_down = Gtk.DropDown(
+        expression=Gtk.PropertyExpression.new(
+            OptionData,
+            expression=None,
+            property_name="label",
+        ),
+        model=action.options,
+    )
+    drop_down.add_css_class("flat-dropdown")
+    child = drop_down.get_first_child()
+    while child is not None:
+        if isinstance(child, Gtk.Popover):
+            child.props.halign = Gtk.Align.END
+            break
+
+        child = child.get_next_sibling()
+
+    row.add_suffix(drop_down)
+    row.props.activatable_widget = drop_down
+    index = -1
+    if action.has_status_script:
+        for i in range(action.options.get_n_items()):
+            try:
+                if action.options.get_item(i).id == action.status:
+                    index = i
+                    break
+            except JankWarning as warning:
+                error_func(warning.title, warning.message)
+        if index >= 0:
+            drop_down.set_selected(index)
+
+    else:
+        row.add_prefix(no_status())
+    drop_down.connect("notify::selected-item", on_row_selected)
+    return row
+
+
+def create_button_group_row(
+    action: ActionData,
+    callback: Callable[[Gtk.Widget, str, str], None],
+    error_func: Callable[[str, str], None],
+):
+    row = Adw.ActionRow(title=action.title, subtitle=action.description)
+    action_box = Gtk.Box()
+    action_box.add_css_class("action-button-group")
+    row.add_suffix(action_box)
+    if not action.has_status_script:
+        row.add_prefix(no_status())
+    prev = None
+    for index, option in enumerate(action.options):
+        label = option.id.replace("-", " ").title()
+        button = Gtk.ToggleButton(
+            label=label,
+            css_classes=["action-button"],
+        )
+        button.connect("clicked", callback, option.label, option.script)
+        if prev:
+            button.set_group(prev)
+        prev = button
+        action_box.append(button)
+        if index < action.options.get_n_items() - 1:
+            action_box.append(
+                Gtk.Separator(
+                    orientation=Gtk.Orientation.VERTICAL,
+                    css_classes=["action-button"],
+                )
+            )
+        try:
+            button.props.active = option.id == action.status
+        except JankWarning as warning:
+            error_func(warning.title, warning.message)
+    return row
+
+
 def create_row(
     action: ActionData,
     callback: Callable[[Gtk.Widget, str, str], None],
@@ -57,82 +151,12 @@ def create_row(
 ):
     """Create row widget for an action"""
 
-    def on_row_selected(row: Adw.ComboRow, gparam_spec: GObject.ParamSpec):
-        """Adapt on_row_selected event to the button style callback we received"""
-        option = cast("OptionData", row.get_selected_item())
-        callback(row, option.label, option.script)
-
-    no_status = Gtk.Image.new_from_icon_name("dialog-question-symbolic")
-    no_status.add_css_class("warning")
-    no_status.props.tooltip_text = "Action has no status script"
     option_count = action.options.get_n_items()
 
     if option_count > 3:
-        row = Adw.ActionRow(title=action.title, subtitle=action.description)
-        drop_down = Gtk.DropDown(
-            expression=Gtk.PropertyExpression.new(
-                OptionData,
-                expression=None,
-                property_name="label",
-            ),
-            model=action.options,
-        )
-        drop_down.add_css_class("flat-dropdown")
-        child = drop_down.get_first_child()
-        while child is not None:
-            if isinstance(child, Gtk.Popover):
-                child.props.halign = Gtk.Align.END
-                break
-            child = child.get_next_sibling()
-
-        row.add_suffix(drop_down)
-        row.props.activatable_widget = drop_down
-        index = -1
-        if action.has_status_script:
-            for i in range(action.options.get_n_items()):
-                option = action.options.get_item(i)
-                try:
-                    if action.options.get_item(i).id == action.status:
-                        index = i
-                        break
-                except JankWarning as warning:
-                    error_func(warning.title, warning.message)
-            if index >= 0:
-                drop_down.set_selected(index)
-
-        else:
-            row.add_prefix(no_status)
-        drop_down.connect("notify::selected-item", on_row_selected)
+        row = create_combo_row(action, callback, error_func)
     elif option_count > 0:
-        row = Adw.ActionRow(title=action.title, subtitle=action.description)
-        action_box = Gtk.Box()
-        action_box.add_css_class("action-button-group")
-        row.add_suffix(action_box)
-        if not action.has_status_script:
-            row.add_prefix(no_status)
-        prev = None
-        for index, option in enumerate(action.options):
-            label = option.id.replace("-", " ").title()
-            try:
-                button = Gtk.ToggleButton(
-                    label=label,
-                    active=option.id == action.status,
-                    css_classes=["action-button"],
-                )
-                button.connect("clicked", callback, option.label, option.script)
-                if prev:
-                    button.set_group(prev)
-                prev = button
-                action_box.append(button)
-                if index < action.options.get_n_items() - 1:
-                    action_box.append(
-                        Gtk.Separator(
-                            orientation=Gtk.Orientation.VERTICAL,
-                            css_classes=["action-button"],
-                        )
-                    )
-            except JankWarning as warning:
-                error_func(warning.title, warning.message)
+        row = create_button_group_row(action, callback, error_func)
     else:
         row = Adw.ActionRow(title=action.title, subtitle=action.description)
         row.props.activatable = True
