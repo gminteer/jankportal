@@ -86,7 +86,8 @@ def create_combo_row(
             break
 
         child = child.get_next_sibling()
-
+    if not action.has_status_script:
+        row.add_suffix(no_status())
     row.add_suffix(drop_down)
     row.props.activatable_widget = drop_down
     index = -1
@@ -101,8 +102,6 @@ def create_combo_row(
         if index >= 0:
             drop_down.set_selected(index)
 
-    else:
-        row.add_prefix(no_status())
     drop_down.connect("notify::selected-item", on_row_selected)
     return row
 
@@ -115,9 +114,9 @@ def create_button_group_row(
     row = Adw.ActionRow(title=action.title, subtitle=action.description)
     action_box = Gtk.Box()
     action_box.add_css_class("action-button-group")
-    row.add_suffix(action_box)
     if not action.has_status_script:
-        row.add_prefix(no_status())
+        row.add_suffix(no_status())
+    row.add_suffix(action_box)
     prev = None
     for index, option in enumerate(action.options):
         label = option.id.replace("-", " ").title()
