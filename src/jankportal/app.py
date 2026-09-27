@@ -35,15 +35,14 @@ class JankPortalWindow(Adw.ApplicationWindow):
     bottom_sheet: Adw.BottomSheet = Gtk.Template.Child()
     stack: Adw.ViewStack = Gtk.Template.Child()
     command_label: Gtk.Label = Gtk.Template.Child()
-    search_bar: Gtk.SearchBar = Gtk.Template.Child()
-    search_entry: Gtk.SearchEntry = Gtk.Template.Child()
+    search: Gtk.SearchEntry = Gtk.Template.Child()
     keep_vte_open: Gtk.ToggleButton = Gtk.Template.Child()
     overlay: Adw.ToastOverlay = Gtk.Template.Child()
 
     def __init__(self, application: Adw.Application):
         super().__init__(application=application)
         self.vte.connect("child-exited", self.on_child_exited)
-        self.search_entry.set_key_capture_widget(self)
+        self.search.set_key_capture_widget(self)
         self._vte_is_running = False
 
     def _close_vte(self):

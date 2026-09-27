@@ -11,12 +11,10 @@ template $JankPortalWindow : Adw.ApplicationWindow {
         [top]
         Adw.HeaderBar {
             [start]
-            SearchBar search_bar {
-                search-mode-enabled: true;
-                child: SearchEntry search_entry {
+            SearchEntry search {
                     placeholder-text: _("Search…");
-                };
             }
+
             [end]
             Button {
                 icon-name: "xsi-help-about-symbolic";
