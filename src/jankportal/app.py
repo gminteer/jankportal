@@ -5,7 +5,7 @@ from pathlib import Path
 
 import gi
 
-from .lib import RES_PATH
+from .lib import APP_PATH
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -26,7 +26,7 @@ from .ostree import OSTreeUI  # noqa: E402
 from .yafti import YaftiUI  # noqa: E402
 
 
-@Gtk.Template(resource_path=f"{RES_PATH}/app.ui")
+@Gtk.Template(resource_path=f"{APP_PATH}/app.ui")
 class JankPortalWindow(Adw.ApplicationWindow):
     """Main window for Jank Portal"""
 
@@ -185,7 +185,7 @@ class JankPortalApp(Adw.Application):
         """Load CSS and main window, show main window"""
 
         css = Gtk.CssProvider()
-        css.load_from_resource(f"{RES_PATH}/app.css")
+        css.load_from_resource(f"{APP_PATH}/app.css")
         display = Gdk.Display.get_default()
         if display:
             Gtk.StyleContext.add_provider_for_display(

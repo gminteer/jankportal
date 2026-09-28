@@ -1,36 +1,24 @@
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, TypedDict, cast
+from typing import TYPE_CHECKING, cast
 
 import gi
 import yaml
 
-from .lib import (
-    RES_PATH,
-    ActionData,
-    JankWarning,
-    OptionData,
-    PageData,
-    end_align_drop_down_popover,
-)
+from .lib import JankWarning, align_drop_down
+from .models import ActionModel, OptionModel, PageModel
+from .templates import Yafti
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from .app import JankPortalWindow
-    from .lib import YaftiType
+    from .types import YaftiType
 
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gio, GObject, Gtk  # noqa: E402
-
-
-class TitledPage(TypedDict):
-    name: str
-    title: str
-    visible: bool
-    page: Gtk.ScrolledWindow
 
 
 def create_model(
@@ -41,14 +29,14 @@ def create_model(
     try:
         path = Path(file_name)
         with path.open() as file:
-            yafti = cast("YaftiType", yaml.safe_load(file))
+            yafti = cast("YaftiType.Root", yaml.safe_load(file))
             if not yafti:
                 panic_func("Error parsing yafti")
                 sys.exit(1)
 
-            model = Gio.ListStore(item_type=PageData)
+            model = Gio.ListStore(item_type=PageModel)
             for screen in yafti["screens"]:
-                model.append(PageData(screen))
+                model.append(PageModel(screen))
 
             return model
 
@@ -67,7 +55,7 @@ def no_status():
 
 
 def create_combo_row(
-    action: ActionData,
+    action: ActionModel,
     callback: Callable[[Gtk.Widget, str, str], None],
     error_func: Callable[[str, str], None],
 ):
@@ -75,20 +63,20 @@ def create_combo_row(
 
     def on_row_selected(drop_down: Gtk.DropDown, g_param_spec: GObject.ParamSpec):
         """Adapt on_row_selected event to the button style callback we received"""
-        option = cast("OptionData", drop_down.get_selected_item())
+        option = cast("OptionModel", drop_down.get_selected_item())
         callback(drop_down, option.label, option.script)
 
     row = Adw.ActionRow(title=action.title, subtitle=action.description)
     drop_down = Gtk.DropDown(
         expression=Gtk.PropertyExpression.new(
-            OptionData,
+            OptionModel,
             expression=None,
             property_name="label",
         ),
         model=action.options,
     )
     drop_down.add_css_class("flat-dropdown")
-    end_align_drop_down_popover(drop_down)
+    align_drop_down(drop_down)
 
     if not action.has_status_script:
         row.add_suffix(no_status())
@@ -111,7 +99,7 @@ def create_combo_row(
 
 
 def create_button_group_row(
-    action: ActionData,
+    action: ActionModel,
     callback: Callable[[Gtk.Widget, str, str], None],
     error_func: Callable[[str, str], None],
 ):
@@ -148,7 +136,7 @@ def create_button_group_row(
 
 
 def create_row(
-    action: ActionData,
+    action: ActionModel,
     callback: Callable[[Gtk.Widget, str, str], None],
     error_func: Callable[[str, str], None],
 ):
@@ -168,29 +156,22 @@ def create_row(
     return row
 
 
-@Gtk.Template(resource_path=f"{RES_PATH}/yafti/page.ui")
-class YaftiPage(Gtk.ScrolledWindow):
-    __gtype_name__ = "YaftiPage"
-    description: Gtk.Label = Gtk.Template.Child()
-    action_list: Gtk.ListBox = Gtk.Template.Child()
-
-
 def create_pages(
-    model: Gio.ListStore[PageData],
+    model: Gio.ListStore[PageModel],
     callback: Callable[[Gtk.Widget, str, str], None],
     filter: Gtk.CustomFilter,
     error_func: Callable[[str, str], None],
 ):
-    def row_factory(action: ActionData):
+    def row_factory(action: ActionModel):
         return create_row(action, callback, error_func)
 
     # Everything list for search func
-    all_actions = Gio.ListStore(item_type=ActionData)
+    all_actions = Gio.ListStore(item_type=ActionModel)
     filtered_model = Gtk.FilterListModel.new(all_actions, filter)
-    search_page = YaftiPage()
+    search_page = Yafti.Page()
     search_page.description.props.label = "Search Results"
     search_page.action_list.bind_model(filtered_model, row_factory)
-    pages: list[TitledPage] = [
+    pages: list[YaftiType.TitledPage] = [
         {
             "title": "Search Results",
             "name": "search",
@@ -206,7 +187,7 @@ def create_pages(
             0,
             [screen.actions.get_item(i) for i in range(screen.actions.get_n_items())],
         )
-        page = YaftiPage()
+        page = Yafti.Page()
         page.description.props.label = screen.descrption
         page.action_list.bind_model(screen.actions, row_factory)
 
@@ -219,7 +200,7 @@ def create_pages(
     return pages
 
 
-def filter(item: ActionData, search_text: str):
+def filter(item: ActionModel, search_text: str):
     """Filter search results based on given text"""
 
     if not search_text:
@@ -240,7 +221,7 @@ class YaftiUI:
         self.last_page = "welcome"
         self.window.search.connect("search-changed", self.on_search_changed)
 
-        def filter_func(item: ActionData):
+        def filter_func(item: ActionModel):
             return filter(item, self.search_text)
 
         self._filter = Gtk.CustomFilter.new(filter_func)

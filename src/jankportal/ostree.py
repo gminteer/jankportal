@@ -7,7 +7,9 @@ import gi
 import markdown
 import requests
 
-from .lib import RES_PATH, DeploymentData, end_align_drop_down_popover
+from .lib import align_drop_down
+from .models import DeploymentModel
+from .templates import OSTree
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -23,6 +25,8 @@ from gi.repository import Adw, Gio, GObject, Gtk, WebKit  # noqa: E402
 # Wait for WebKit to resolve
 GObject.type_ensure(WebKit.WebView.__gtype__)  # type: ignore
 
+
+# Constants
 IMAGES = [
     "bazzite",
     "bazzite-deck",
@@ -39,10 +43,11 @@ IMAGES = [
 ]
 
 
+# Helper functions
 def create_model(panic_func: Callable[[str], None]):
     """Parse rpm-ostree status into Gio.ListStore"""
     try:
-        model = Gio.ListStore(item_type=DeploymentData)
+        model = Gio.ListStore(item_type=DeploymentModel)
         result = subprocess.run(
             ["rpm-ostree", "status", "--json"],
             capture_output=True,
@@ -54,7 +59,7 @@ def create_model(panic_func: Callable[[str], None]):
         image: str = ""
         tag: str = ""
         for index, deployment in enumerate(ostree_status["deployments"]):
-            model.append(DeploymentData(index=index, deployment=deployment))
+            model.append(DeploymentModel(index=index, deployment=deployment))
             if deployment["booted"]:
                 image, tag = (
                     deployment["container-image-reference"].split("/")[-1].split(":")
@@ -70,24 +75,11 @@ def create_model(panic_func: Callable[[str], None]):
         sys.exit(1)  # Never reaced, makes type analysis happy
 
 
-def html_template(changelog: str):
-    """Wrap python-markdown generated HTML in a document with github-markdown.css"""
-
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.9.0/github-markdown.min.css"
-        integrity="sha512-Ouq1+UcR9ENXndFyd/YA9i+ETLJmX3WoaMBF/nDzdqJbipKGL/SAbkO+qjDoxfD/dhZs4ZqgR9vXkolrK77xmQ=="
-        crossorigin="anonymous" referrerpolicy="no-referrer">
-</head>
-<body class="markdown-body">
-    {changelog}
-</body>
-</html>
-"""
+def find_in_string_list(model: Gtk.StringList, string: str):
+    for i in range(model.get_n_items()):
+        if model.get_string(i) == string:
+            return i
+    return -1
 
 
 def get_tags(
@@ -124,28 +116,29 @@ def get_tags(
         sys.exit(1)  # Never reaced, makes type analysis happy
 
 
-@Gtk.Template(resource_path=f"{RES_PATH}/ostree/row.ui")
-class OSTreeRow(Adw.ExpanderRow):
-    __gtype_name__ = "OSTreeRow"
-    icon_box: Gtk.Box = Gtk.Template.Child()
-    changelog: Gtk.Button = Gtk.Template.Child()
+def wrap_html(changelog: str):
+    """Wrap python-markdown generated HTML in a document with github-markdown.css"""
+
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.9.0/github-markdown.min.css"
+        integrity="sha512-Ouq1+UcR9ENXndFyd/YA9i+ETLJmX3WoaMBF/nDzdqJbipKGL/SAbkO+qjDoxfD/dhZs4ZqgR9vXkolrK77xmQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+<body class="markdown-body">
+    {changelog}
+</body>
+</html>
+"""
 
 
-@Gtk.Template(resource_path=f"{RES_PATH}/ostree/deployment_actions.ui")
-class OSTreeDeploymentActions(Gtk.ListBox):
-    __gtype_name__ = "OSTreeDeploymentActions"
-    pin: Adw.SwitchRow = Gtk.Template.Child()
-    rebase: Adw.ActionRow = Gtk.Template.Child()
-
-
-@Gtk.Template(resource_path=f"{RES_PATH}/ostree/overlay_list.ui")
-class OSTreeOverlayList(Gtk.Box):
-    __gtype_name__ = "OSTreeOverlayList"
-    list: Gtk.ListBox = Gtk.Template.Child()
-
-
+# Component builders
 def create_row(
-    deployment: DeploymentData,
+    deployment: DeploymentModel,
     on_changelog_clicked: Callable[[Gtk.Button, str], None],
     on_pinned_active: Callable[[Adw.SwitchRow, GObject.ParamSpec, int], None],
     on_remove_clicked: Callable[[Gtk.Button, str], None],
@@ -153,7 +146,7 @@ def create_row(
 ):
     """Create expander rows for each deployment"""
 
-    row = OSTreeRow()
+    row = OSTree.Row()
     row.props.title = f"{deployment.index}: Version {deployment.version}"
     if len(deployment.overlays) > 0:
         row.props.subtitle = f"({len(deployment.overlays)} overlaid packages)"
@@ -172,16 +165,16 @@ def create_row(
     row.changelog.connect("clicked", on_changelog_clicked, deployment.version)
 
     # Add subrows for deployment actions
-    actions = OSTreeDeploymentActions()
+    actions = OSTree.DeploymentActions()
     actions.pin.connect("notify::active", on_pinned_active, deployment.index)
     actions.rebase.connect(
-        "activated", on_rebase_activated, deployment.image_ref, deployment.version
+        "activated", on_rebase_activated, deployment.image, deployment.version
     )
     row.add_row(actions)
 
     # Add subrows for overlaid packages with remove buttons if deployment is booted
     if len(deployment.overlays) > 0:
-        overlays = OSTreeOverlayList()
+        overlays = OSTree.OverlayList()
 
         for overlay in deployment.overlays:
             overlay_row = Adw.ActionRow(title=overlay)
@@ -198,34 +191,16 @@ def create_row(
     return row
 
 
-def find_in_string_list(model: Gtk.StringList, string: str):
-    for i in range(model.get_n_items()):
-        if model.get_string(i) == string:
-            return i
-    return -1
-
-
-@Gtk.Template(resource_path=f"{RES_PATH}/ostree/page.ui")
-class OSTreePage(Gtk.ScrolledWindow):
-    __gtype_name__ = "OSTreePage"
-    container: Gtk.Box = Gtk.Template.Child()
-    image: Gtk.DropDown = Gtk.Template.Child()
-    tag: Gtk.DropDown = Gtk.Template.Child()
-    img_reset: Adw.ButtonRow = Gtk.Template.Child()
-    img_rebase: Adw.ButtonRow = Gtk.Template.Child()
-
-
 def create_page(
-    model: Gio.ListStore[DeploymentData],
+    model: Gio.ListStore[DeploymentModel],
     current_image: str,
     current_tag: str,
-    row_factory: Callable[[DeploymentData], Adw.ExpanderRow],
+    row_factory: Callable[[DeploymentModel], Adw.ExpanderRow],
     panic_func: Callable[[str], None],
 ):
-    page = OSTreePage()
-    # Can't mess with encapsulated child widgets from the blueprint
-    end_align_drop_down_popover(page.image)
-    end_align_drop_down_popover(page.tag)
+    page = OSTree.Page()
+    align_drop_down(page.image)
+    align_drop_down(page.tag)
 
     # Prevent users from going off the rails
     # (only show nvidia/gnome images if currently on a matching image)
@@ -266,13 +241,6 @@ def create_page(
     return page
 
 
-@Gtk.Template(resource_path=f"{RES_PATH}/ostree/changelog_dialog.ui")
-class ChangelogDialog(Adw.Dialog):
-    __gtype_name__ = "ChangelogDialog"
-    bar: Adw.WindowTitle = Gtk.Template.Child()
-    web_view: WebKit.WebView = Gtk.Template.Child()
-
-
 class OSTreeUI:
     def __init__(self, window: JankPortalWindow):
         """Builds ViewStackPage based on rpm-ostree status, appends to window.stack"""
@@ -280,7 +248,7 @@ class OSTreeUI:
         self.window = window
         self.model, self.image, self.tag = create_model(window.panic)
 
-        def row_factory(deployment: DeploymentData):
+        def row_factory(deployment: DeploymentModel):
             return create_row(
                 deployment,
                 self.on_changelog_clicked,
@@ -356,10 +324,10 @@ class OSTreeUI:
             )
             return
         raw_changelog = response.json()["body"]
-        changelog = html_template(
+        changelog = wrap_html(
             markdown.markdown(raw_changelog, extensions=["extra", "codehilite"])
         )
-        dialog = ChangelogDialog()
+        dialog = OSTree.Changelog()
         dialog.bar.props.subtitle = f"v{tag}"
         dialog.web_view.load_html(changelog)
         dialog.present(self.window)
