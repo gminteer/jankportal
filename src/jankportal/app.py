@@ -171,6 +171,13 @@ class JankPortalWindow(Adw.ApplicationWindow):
         self.yafti_ui = YaftiUI(self)
         self.stack.props.visible_child_name = "welcome"
         self.ostree_ui = OSTreeUI(self)
+        placeholder = Adw.Bin(
+            child=Adw.StatusPage(
+                title="Wait a moment",
+                description="Loading Deployments UI.",
+            )
+        )
+        self.stack.add_titled(child=placeholder, name="ostree", title="Deployments")
         await self.ostree_ui.initialize()
         self._ready = True
 

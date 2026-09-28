@@ -271,9 +271,9 @@ class OSTreeUI:
         self.page.img_reset.connect("activated", self.on_img_reset_activated)
         self.page.image.connect("notify::selected-item", self.on_image_selected)
         self.page.tag.connect("notify::selected-item", self.on_tag_selected)
-        self.window.stack.add_titled(
-            child=self.page, title="Deployments", name="ostree"
-        )
+        placeholder = cast("Adw.Bin", self.window.stack.get_child_by_name("ostree"))
+        placeholder.props.child = self.page
+        print("switcheroo")
 
     @property
     def selected_image(self):
