@@ -1,7 +1,7 @@
 import json
 import subprocess
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import gi
 import markdown
@@ -131,10 +131,11 @@ class OSTreeRow(Adw.ExpanderRow):
     changelog: Gtk.Button = Gtk.Template.Child()
 
 
-@Gtk.Template(resource_path=f"{RES_PATH}/ostree/pin_list.ui")
-class OSTreePinList(Gtk.ListBox):
-    __gtype_name__ = "OSTreePinList"
-    pinned: Adw.SwitchRow = Gtk.Template.Child()
+@Gtk.Template(resource_path=f"{RES_PATH}/ostree/deployment_actions.ui")
+class OSTreeDeploymentActions(Gtk.ListBox):
+    __gtype_name__ = "OSTreeDeploymentActions"
+    pin: Adw.SwitchRow = Gtk.Template.Child()
+    rebase: Adw.ActionRow = Gtk.Template.Child()
 
 
 @Gtk.Template(resource_path=f"{RES_PATH}/ostree/overlay_list.ui")
@@ -143,19 +144,12 @@ class OSTreeOverlayList(Gtk.Box):
     list: Gtk.ListBox = Gtk.Template.Child()
 
 
-@Gtk.Template(resource_path=f"{RES_PATH}/ostree/page.ui")
-class OSTreePage(Gtk.ScrolledWindow):
-    __gtype_name__ = "OSTreePage"
-    container: Gtk.Box = Gtk.Template.Child()
-    image: Gtk.DropDown = Gtk.Template.Child()
-    tag: Gtk.DropDown = Gtk.Template.Child()
-
-
 def create_row(
     deployment: DeploymentData,
-    show_changelog: Callable[[Gtk.Button, str], None],
-    toggle_ostree_pin: Callable[[Adw.SwitchRow, GObject.ParamSpec, int], None],
-    remove_overlay: Callable[[Gtk.Button, str], None],
+    on_changelog_clicked: Callable[[Gtk.Button, str], None],
+    on_pinned_active: Callable[[Adw.SwitchRow, GObject.ParamSpec, int], None],
+    on_remove_clicked: Callable[[Gtk.Button, str], None],
+    on_rebase_activated: Callable[[Adw.ActionRow, str, str], None],
 ):
     """Create expander rows for each deployment"""
 
@@ -175,12 +169,15 @@ def create_row(
         icon.props.tooltip_text = "Staged update (pending reboot)"
         row.icon_box.append(icon)
 
-    row.changelog.connect("clicked", show_changelog, deployment.version)
+    row.changelog.connect("clicked", on_changelog_clicked, deployment.version)
 
-    # Add subrow for toggling pinned status
-    pin = OSTreePinList()
-    pin.pinned.connect("notify::active", toggle_ostree_pin, deployment.index)
-    row.add_row(pin)
+    # Add subrows for deployment actions
+    actions = OSTreeDeploymentActions()
+    actions.pin.connect("notify::active", on_pinned_active, deployment.index)
+    actions.rebase.connect(
+        "activated", on_rebase_activated, deployment.image_ref, deployment.version
+    )
+    row.add_row(actions)
 
     # Add subrows for overlaid packages with remove buttons if deployment is booted
     if len(deployment.overlays) > 0:
@@ -194,7 +191,7 @@ def create_row(
                     child=Gtk.Image.new_from_icon_name("edit-delete-symbolic"),
                     css_classes=["action-button", "destructive-action"],
                 )
-                button.connect("clicked", remove_overlay, overlay)
+                button.connect("clicked", on_remove_clicked, overlay)
                 overlay_row.add_suffix(button)
 
         row.add_row(overlays)
@@ -206,6 +203,16 @@ def find_in_string_list(model: Gtk.StringList, string: str):
         if model.get_string(i) == string:
             return i
     return -1
+
+
+@Gtk.Template(resource_path=f"{RES_PATH}/ostree/page.ui")
+class OSTreePage(Gtk.ScrolledWindow):
+    __gtype_name__ = "OSTreePage"
+    container: Gtk.Box = Gtk.Template.Child()
+    image: Gtk.DropDown = Gtk.Template.Child()
+    tag: Gtk.DropDown = Gtk.Template.Child()
+    img_reset: Adw.ButtonRow = Gtk.Template.Child()
+    img_rebase: Adw.ButtonRow = Gtk.Template.Child()
 
 
 def create_page(
@@ -233,7 +240,7 @@ def create_page(
     image_model = Gtk.StringList.new(sorted(filtered_images))
 
     page.image.set_model(image_model)
-    if index := find_in_string_list(image_model, current_image):
+    if (index := find_in_string_list(image_model, current_image)) >= 0:
         page.image.set_selected(index)
     else:
         image_model.append(current_image)
@@ -243,7 +250,7 @@ def create_page(
     tag_model = Gtk.StringList.new(sorted(branch_tags))
 
     page.tag.set_model(tag_model)
-    if index := find_in_string_list(tag_model, current_tag):
+    if (index := find_in_string_list(tag_model, current_tag)) >= 0:
         page.tag.set_selected(index)
     else:
         tag_model.append(current_tag)
@@ -271,20 +278,72 @@ class OSTreeUI:
         """Builds ViewStackPage based on rpm-ostree status, appends to window.stack"""
 
         self.window = window
-        self.model, image, tag = create_model(window.panic)
+        self.model, self.image, self.tag = create_model(window.panic)
 
         def row_factory(deployment: DeploymentData):
             return create_row(
                 deployment,
-                self.show_changelog,
-                self.toggle_ostree_pin,
-                self.remove_overlay,
+                self.on_changelog_clicked,
+                self.on_pinned_activated,
+                self.on_remove_clicked,
+                self.on_rebase_activated,
             )
 
-        page = create_page(self.model, image, tag, row_factory, window.panic)
-        self.window.stack.add_titled(child=page, title="Deployments", name="ostree")
+        self.page = create_page(
+            self.model, self.image, self.tag, row_factory, self.window.panic
+        )
+        self.image_idx = find_in_string_list(
+            cast("Gtk.StringList", self.page.image.props.model), self.image
+        )
+        self.tag_idx = find_in_string_list(
+            cast("Gtk.StringList", self.page.tag.props.model), self.tag
+        )
+        # For some weird reason setting signal handlers in the blueprint
+        # breaks the styling on the parent ListBox
+        self.page.img_rebase.connect("activated", self.on_img_rebase_activated)
+        self.page.img_reset.connect("activated", self.on_img_reset_activated)
+        self.page.image.connect("notify::selected-item", self.on_image_selected)
+        self.page.tag.connect("notify::selected-item", self.on_tag_selected)
+        self.window.stack.add_titled(
+            child=self.page, title="Deployments", name="ostree"
+        )
 
-    def show_changelog(self, button: Gtk.Button, tag: str):
+    @property
+    def selected_image(self):
+        return cast(
+            "Gtk.StringObject", self.page.image.get_selected_item()
+        ).get_string()
+
+    @property
+    def selected_tag(self):
+        return cast("Gtk.StringObject", self.page.tag.get_selected_item()).get_string()
+
+    def on_img_rebase_activated(self, button_row: Adw.ButtonRow):
+        self.window.command_runner(
+            title="Rebase",
+            script=f"brh rebase {self.selected_image}:{self.selected_tag}",
+        )
+
+    def on_img_reset_activated(self, button_row: Adw.ButtonRow):
+        self.page.image.set_selected(self.image_idx)
+        self.page.tag.set_selected(self.tag_idx)
+
+    def _handle_img_action_visibility(self):
+        visible = not (
+            self.image == self.selected_image and self.tag == self.selected_tag
+        )
+        self.page.img_rebase.props.visible = visible
+        self.page.img_reset.props.visible = visible
+
+    def on_image_selected(
+        self, drop_down: Gtk.DropDown, g_param_spec: GObject.ParamSpec
+    ):
+        self._handle_img_action_visibility()
+
+    def on_tag_selected(self, drop_down: Gtk.DropDown, g_param_spec: GObject.ParamSpec):
+        self._handle_img_action_visibility()
+
+    def on_changelog_clicked(self, button: Gtk.Button, tag: str):
         """Show changelog in an AdwDialog overlay"""
 
         # Get release notes for whichever version was selected
@@ -305,14 +364,19 @@ class OSTreeUI:
         dialog.web_view.load_html(changelog)
         dialog.present(self.window)
 
-    def remove_overlay(self, button: Gtk.Button, overlay: str):
+    def on_rebase_activated(self, row: Adw.ActionRow, image: str, version: str):
+        self.window.command_runner(
+            title="Rebase", script=f"brh rebase {image}-{version}"
+        )
+
+    def on_remove_clicked(self, button: Gtk.Button, overlay: str):
         """Send command to remove overlaid package to window's command runner"""
 
         self.window.command_runner(
             f"Remove {overlay}", f"rpm-ostree uninstall {overlay}"
         )
 
-    def toggle_ostree_pin(
+    def on_pinned_activated(
         self, row: Adw.SwitchRow, g_param_spec: GObject.ParamSpec, index: int
     ):
         """Send command to pin/unpin deployment to window's command runner"""

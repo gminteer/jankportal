@@ -16,6 +16,7 @@ template $OSTreePage: ScrolledWindow {
         }
 
         ListBox {
+            selection-mode: none;
             styles ["boxed-list", "root-list"]
 
             Adw.ActionRow {
@@ -23,7 +24,7 @@ template $OSTreePage: ScrolledWindow {
                 activatable-widget: image;
 
                 [suffix]
-                Gtk.DropDown image {
+                DropDown image {
                     styles ["flat-dropdown"]
                 }
             }
@@ -33,10 +34,25 @@ template $OSTreePage: ScrolledWindow {
                 activatable-widget: tag;
 
                 [suffix]
-                Gtk.DropDown tag {
+                DropDown tag {
                     styles ["flat-dropdown"]
                 }
             }
+            Adw.ButtonRow img_reset {
+                visible: false;
+                activatable: true;
+                title: _("Reset");
+                start-icon-name: "view-refresh-symbolic";
+            }
+
+            Adw.ButtonRow img_rebase {
+                visible: false;
+                activatable: true;
+                title: _("Rebase");
+                styles ["destructive-action"]
+                start-icon-name: "document-save-symbolic";
+            }
+
         }
 
         Label {

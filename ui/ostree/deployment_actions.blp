@@ -1,0 +1,17 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $OSTreeDeploymentActions: ListBox {
+    selection-mode: none;
+    styles ["boxed-list", "sub-list"]
+
+    Adw.SwitchRow pin {
+      title: _("Pin Deployment");
+    }
+    Adw.ActionRow rebase {
+      activatable: true;
+      title: _("Rebase to this version");
+      subtitle: _("This will disable updates!");
+      styles ["destructive-action"]
+    }
+}
