@@ -44,7 +44,7 @@ IMAGES = [
 
 
 # Helper functions
-def create_model(panic_func: Callable[[str], None]):
+def create_model(panic: Callable[[str], None]):
     """Parse rpm-ostree status into Gio.ListStore"""
     try:
         model = Gio.ListStore(item_type=DeploymentModel)
@@ -67,11 +67,11 @@ def create_model(panic_func: Callable[[str], None]):
         return model, image, tag
 
     except FileNotFoundError:
-        panic_func("rpm-ostree not in $PATH")
+        panic("rpm-ostree not in $PATH")
         sys.exit(1)  # Never reached, makes type analysis happy
 
     except subprocess.CalledProcessError as error:
-        panic_func(f"rpm-ostree error: {error.stderr}")
+        panic(f"rpm-ostree error: {error.stderr}")
         sys.exit(1)  # Never reaced, makes type analysis happy
 
 
@@ -82,9 +82,7 @@ def find_in_string_list(model: Gtk.StringList, string: str):
     return -1
 
 
-def get_tags(
-    image: str, panic_func: Callable[[str], None]
-) -> tuple[list[str], list[str]]:
+def get_tags(image: str, panic: Callable[[str], None]) -> tuple[list[str], list[str]]:
     """Get tags for a given image from skopeo, sorts them into branches and releases"""
 
     image_uri = f"docker://ghcr.io/ublue-os/{image}"
@@ -108,11 +106,11 @@ def get_tags(
         return branch_tags, release_tags
 
     except FileNotFoundError:
-        panic_func("skopeo not in $PATH")
+        panic("skopeo not in $PATH")
         sys.exit(1)  # Never reaced, makes type analysis happy
 
     except subprocess.CalledProcessError as error:
-        panic_func(f"skopeo error: {error.stderr}")
+        panic(f"skopeo error: {error.stderr}")
         sys.exit(1)  # Never reaced, makes type analysis happy
 
 
@@ -196,7 +194,7 @@ def create_page(
     current_image: str,
     current_tag: str,
     row_factory: Callable[[DeploymentModel], Adw.ExpanderRow],
-    panic_func: Callable[[str], None],
+    panic: Callable[[str], None],
 ):
     page = OSTree.Page()
     align_drop_down(page.image)
@@ -221,7 +219,7 @@ def create_page(
         image_model.append(current_image)
         page.image.set_selected(image_model.get_n_items())
     # Only show branch tags
-    branch_tags, _release_tags = get_tags(current_image, panic_func)
+    branch_tags, _release_tags = get_tags(current_image, panic)
     tag_model = Gtk.StringList.new(sorted(branch_tags))
 
     page.tag.set_model(tag_model)
@@ -319,7 +317,7 @@ class OSTreeUI:
         uri = f"https://api.github.com/repos/ublue-os/bazzite/releases/tags/{tag}"
         response = requests.get(uri)
         if response.status_code != 200:
-            self.window.minor_error(
+            self.window.warn(
                 title=f"HTTP Error {response.status_code}", message=response.text
             )
             return

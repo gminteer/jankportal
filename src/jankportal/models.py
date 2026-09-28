@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING
 
 from gi.repository import Gio, GLib, GObject
 
-from .lib import JankWarning
-
 if TYPE_CHECKING:
     from .types import OSTreeType, YaftiType
+
+INVALID_LIST_POSITION = -1
 
 
 # OSTree
@@ -60,12 +60,14 @@ class OptionModel(GObject.Object):
 
     __gtype_name__ = "OptionModel"
 
-    def __init__(self, option: YaftiType.Option):
+    def __init__(self, option: YaftiType.Option, parent: ActionModel):
         super().__init__()
         self._option = option
+        self.parent = parent
+        self.parent.connect("notify::status", lambda *_: self.notify("active"))  # type: ignore
 
     @GObject.Property(type=str, default="")
-    def id(self):
+    def name(self):
         return self._option["id"]
 
     @GObject.Property(type=str, default="")
@@ -76,6 +78,10 @@ class OptionModel(GObject.Object):
     def script(self):
         return self._option["script"]
 
+    @GObject.Property(type=bool, default=False)
+    def active(self):
+        return self.parent.status == self.name
+
 
 class ActionModel(GObject.Object):
     """GObject adapter for YAFTI action"""
@@ -85,19 +91,29 @@ class ActionModel(GObject.Object):
     def __init__(self, action: YaftiType.Action):
         super().__init__()
         self._action = action
-        self._status = ""
+        self._status = None
+        self._selected = INVALID_LIST_POSITION
+        self._status_detail = None
         if "options" not in action:
             return
         self._options = Gio.ListStore(item_type=OptionModel)
         for option in action["options"]:
-            self._options.append(OptionModel(option))
+            self._options.append(OptionModel(option, self))
 
     @property
     def has_status_script(self):
         return "status_script" in self._action
 
+    @GObject.Property(type=int, default=INVALID_LIST_POSITION)
+    def selected(self):
+        return self._selected
+
     @GObject.Property(type=str, default="")
-    def id(self):
+    def status_detail(self):
+        return self._status_detail
+
+    @GObject.Property(type=str, default="")
+    def name(self):
         return self._action["id"]
 
     @GObject.Property(type=str, default="")
@@ -130,7 +146,7 @@ class ActionModel(GObject.Object):
         """Run status_script to determine current status, cache results"""
 
         if "status_script" not in self._action:
-            return ""
+            return "NO_STATUS"
         if self._status:
             return self._status
         s = []
@@ -155,23 +171,28 @@ class ActionModel(GObject.Object):
                 check=True,
             )
             self._status = result.stdout.strip()
-            return self._status
+            self._status_detail = None
+            for index, option in enumerate(self._options):
+                if option.name == self._status:
+                    self._selected = index
+                    self.notify("selected")
+                    break
+
         except FileNotFoundError:
             # Kludge for steamosctl only being in deck images
             if s[0] == "steamosctl":
                 self._status = "NOT_A_DECK"
-                return self._status
-            self._status = "NOT_FOUND"
-            raise JankWarning(
-                title=f"'{self._action['title']}' error",
-                message=f"Status command '{s[0]}' not found",
-            )
+                self._status_detail = None
+            else:
+                self._status = "NOT_FOUND"
+                self._status_detail = s[0]
+
         except subprocess.CalledProcessError as error:
             self._status = "ERROR"
-            raise JankWarning(
-                title=f"'{self._action['title']}' error",
-                message=f"Status result: '{error.stderr}'",
-            )
+            self._status_detail = error.stderr
+
+        self.notify("status")
+        return self._status
 
 
 class PageModel(GObject.Object):

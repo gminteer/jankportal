@@ -113,7 +113,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
         """Wire up VTE contents-changed signal after script is spawned"""
 
         if error:
-            self.minor_error("Script failed to execute", error.message)
+            self.warn("Action Failed", error.message)
             return
 
         self._vte_is_running = True
@@ -140,7 +140,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
             callback=self.on_spawn_complete,
         )
 
-    def minor_error(self, title: str, message: str) -> None:
+    def warn(self, title: str, message: str) -> None:
         """Display non critical error"""
 
         def on_response(dialog: Adw.AlertDialog, message: str):

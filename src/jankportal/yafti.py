@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, cast
 import gi
 import yaml
 
-from .lib import JankWarning, align_drop_down
+from .lib import align_drop_down
 from .models import ActionModel, OptionModel, PageModel
 from .templates import Yafti
 
@@ -45,19 +45,35 @@ def create_model(
         sys.exit(1)
 
 
-def no_status():
+def create_status_icon(type: str, description: str = ""):
     """Make no status emblem for rows with options, but no status script"""
+    icon = None
+    match type:
+        case "NO_STATUS":
+            icon = Gtk.Image.new_from_icon_name("emblem-important-symbolic")
+            icon.add_css_class("warning")
+            icon.props.tooltip_text = "No status provided"
+        case "NOT_A_DECK":
+            icon = Gtk.Image.new_from_icon_name("dialog-information")
+            icon.add_css_class("warning")
+            icon.props.tooltip_text = "For handhelds and HTPCs only"
+        case "NOT_FOUND":
+            icon = Gtk.Image.new_from_icon_name("xsi-dialog-error-symbolic")
+            icon.add_css_class("error")
+            icon.props.tooltip_text = f"Status command '{description}' not found"
+        case "ERROR":
+            icon = Gtk.Image.new_from_icon_name("xsi-dialog-error-symbolic")
+            icon.add_css_class("error")
+            icon.props.tooltip_text = description or "No details provided"
 
-    icon = Gtk.Image.new_from_icon_name("emblem-important-symbolic")
-    icon.add_css_class("warning")
-    icon.props.tooltip_text = "Unable to determine status"
+        case _:
+            pass
     return icon
 
 
-def create_combo_row(
+def create_dropdown_row(
     action: ActionModel,
     callback: Callable[[Gtk.Widget, str, str], None],
-    error_func: Callable[[str, str], None],
 ):
     """Create an ActionRow with a DropDown"""
 
@@ -77,23 +93,16 @@ def create_combo_row(
     )
     drop_down.add_css_class("flat-dropdown")
     align_drop_down(drop_down)
-
-    if not action.has_status_script:
-        row.add_suffix(no_status())
+    box = Gtk.Box(width_request=16, name="emblem_box")
+    row.add_suffix(box)
     row.add_suffix(drop_down)
+    emblem = create_status_icon(action.status, action.status_detail or "")
+    if emblem:
+        box.append(emblem)
+    action.bind_property(
+        "selected", drop_down, "selected", GObject.BindingFlags.SYNC_CREATE
+    )
     row.props.activatable_widget = drop_down
-    index = -1
-    if action.has_status_script:
-        for i in range(action.options.get_n_items()):
-            try:
-                if action.options.get_item(i).id == action.status:
-                    index = i
-                    break
-            except JankWarning as warning:
-                error_func(warning.title, warning.message)
-        if index >= 0:
-            drop_down.set_selected(index)
-
     drop_down.connect("notify::selected-item", on_row_selected)
     return row
 
@@ -101,26 +110,37 @@ def create_combo_row(
 def create_button_group_row(
     action: ActionModel,
     callback: Callable[[Gtk.Widget, str, str], None],
-    error_func: Callable[[str, str], None],
 ):
     row = Adw.ActionRow(title=action.title, subtitle=action.description)
     action_box = Gtk.Box()
     action_box.add_css_class("action-button-group")
-    if not action.has_status_script:
-        row.add_suffix(no_status())
+    emblem_box = Gtk.Box(width_request=16)
+    emblem = create_status_icon(action.status)
+    if emblem:
+        emblem_box.append(emblem)
+    row.add_suffix(emblem_box)
+    if action.status == "NOT_A_DECK":
+        return row
     row.add_suffix(action_box)
     prev = None
     for index, option in enumerate(action.options):
-        label = option.id.replace("-", " ").title()
+        option = cast("OptionModel", option)
+        label = option.name.replace("-", " ").title()
         button = Gtk.ToggleButton(
-            label=label, css_classes=["action-button"], valign=Gtk.Align.CENTER
+            label=label,
+            name=option.name,
+            css_classes=["action-button"],
+            valign=Gtk.Align.CENTER,
         )
         button.connect("clicked", callback, option.label, option.script)
+        option.bind_property(
+            "active", button, "active", GObject.BindingFlags.SYNC_CREATE
+        )
         if prev:
             button.set_group(prev)
         prev = button
         action_box.append(button)
-        if index < action.options.get_n_items() - 1:
+        if index < len(action.options) - 1:
             action_box.append(
                 Gtk.Separator(
                     orientation=Gtk.Orientation.VERTICAL,
@@ -128,26 +148,21 @@ def create_button_group_row(
                     valign=Gtk.Align.CENTER,
                 )
             )
-        try:
-            button.props.active = option.id == action.status
-        except JankWarning as warning:
-            error_func(warning.title, warning.message)
     return row
 
 
 def create_row(
     action: ActionModel,
     callback: Callable[[Gtk.Widget, str, str], None],
-    error_func: Callable[[str, str], None],
 ):
     """Create row widget for an action"""
 
     option_count = action.options.get_n_items()
 
     if option_count > 3:
-        row = create_combo_row(action, callback, error_func)
+        row = create_dropdown_row(action, callback)
     elif option_count > 0:
-        row = create_button_group_row(action, callback, error_func)
+        row = create_button_group_row(action, callback)
     else:
         row = Adw.ActionRow(title=action.title, subtitle=action.description)
         row.props.activatable = True
@@ -160,10 +175,9 @@ def create_pages(
     model: Gio.ListStore[PageModel],
     callback: Callable[[Gtk.Widget, str, str], None],
     filter: Gtk.CustomFilter,
-    error_func: Callable[[str, str], None],
 ):
     def row_factory(action: ActionModel):
-        return create_row(action, callback, error_func)
+        return create_row(action, callback)
 
     # Everything list for search func
     all_actions = Gio.ListStore(item_type=ActionModel)
@@ -226,9 +240,7 @@ class YaftiUI:
 
         self._filter = Gtk.CustomFilter.new(filter_func)
 
-        pages = create_pages(
-            model, self.on_widget_activated, self._filter, window.minor_error
-        )
+        pages = create_pages(model, self.on_widget_activated, self._filter)
         for page in pages:
             bound_page = window.stack.add_titled(
                 child=page["page"], title=page["title"], name=page["name"]
