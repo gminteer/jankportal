@@ -11,6 +11,12 @@ template $JankPortalWindow : Adw.ApplicationWindow {
         [top]
         Adw.HeaderBar {
             [start]
+            ToggleButton {
+                icon-name: "xsi-sidebar-show-symbolic";
+                tooltip-text: _("Show Navigation");
+                active: bind split_view.show-sidebar bidirectional;
+            }
+
             SearchEntry search {
                     placeholder-text: _("Search…");
             }
@@ -30,7 +36,7 @@ template $JankPortalWindow : Adw.ApplicationWindow {
                 can-open: false;
                 show-drag-handle: false;
 
-                content: Adw.OverlaySplitView {
+                content: Adw.OverlaySplitView split_view {
                     sidebar: Adw.ViewSwitcherSidebar stack_switcher {
                         stack: stack;
                     };
