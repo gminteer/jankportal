@@ -1,9 +1,11 @@
+import asyncio
 import os
 import sys
 from importlib.metadata import version
 from pathlib import Path
 
 import gi
+from gi.events import GLibEventLoopPolicy
 
 from .lib import APP_PATH
 
@@ -41,6 +43,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
 
     def __init__(self, application: Adw.Application):
         super().__init__(application=application)
+        self._ready = False
         self.vte.connect("child-exited", self.on_child_exited)
         self.search.set_key_capture_widget(self)
         self._vte_is_running = False
@@ -127,7 +130,8 @@ class JankPortalWindow(Adw.ApplicationWindow):
 
     def command_runner(self, title: str, script: str) -> None:
         """Pass script to terminal widget"""
-
+        if not self._ready:
+            return
         self.command_label.props.label = title
         self.vte.spawn_async(
             pty_flags=Vte.PtyFlags.DEFAULT,
@@ -143,14 +147,11 @@ class JankPortalWindow(Adw.ApplicationWindow):
     def warn(self, title: str, message: str) -> None:
         """Display non critical error"""
 
-        def on_response(dialog: Adw.AlertDialog, message: str):
-            pass
-
         dialog = Adw.AlertDialog.new(title, message)
         dialog.add_response("ok", "OK")
         dialog.set_default_response("ok")
         dialog.set_close_response("ok")
-        dialog.choose(self, cancellable=None, callback=on_response)
+        dialog.choose(self, cancellable=None)
 
     def panic(self, message: str) -> None:
         """Display critical failure and exit program"""
@@ -164,12 +165,14 @@ class JankPortalWindow(Adw.ApplicationWindow):
         dialog.set_close_response("ok")
         dialog.choose(self, cancellable=None, callback=on_response)
 
-    def append_components(self) -> None:
+    async def append_components(self) -> None:
         """Add ViewStackPages to main window"""
 
         self.yafti_ui = YaftiUI(self)
-        self.ostree_ui = OSTreeUI(self)
         self.stack.props.visible_child_name = "welcome"
+        self.ostree_ui = OSTreeUI(self)
+        await self.ostree_ui.initialize()
+        self._ready = True
 
 
 class JankPortalApp(Adw.Application):
@@ -194,10 +197,12 @@ class JankPortalApp(Adw.Application):
                 priority=Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
             )
         win = JankPortalWindow(application=self)
-        win.append_components()
+        asyncio.create_task(win.append_components())
         win.present()
 
 
 def main():
     app = JankPortalApp()
+    policy = GLibEventLoopPolicy()
+    asyncio.set_event_loop_policy(policy)  # type: ignore
     return app.run(sys.argv)

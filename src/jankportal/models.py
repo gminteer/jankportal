@@ -1,5 +1,5 @@
+import asyncio
 import shlex
-import subprocess
 from typing import TYPE_CHECKING
 
 from gi.repository import Gio, GLib, GObject
@@ -94,11 +94,20 @@ class ActionModel(GObject.Object):
         self._status = None
         self._selected = INVALID_LIST_POSITION
         self._status_detail = None
+        self._options = Gio.ListStore(item_type=OptionModel)
         if "options" not in action:
             return
-        self._options = Gio.ListStore(item_type=OptionModel)
         for option in action["options"]:
             self._options.append(OptionModel(option, self))
+        if "status_script" in action:
+            self._async_task = asyncio.create_task(
+                self._get_status(action["status_script"])
+            )
+            self._async_task.add_done_callback(self._cleanup_task)
+            self._status = "AWAITING_FUTURE"
+
+    def _cleanup_task(self, task: asyncio.Task[None]):
+        self._async_task = None
 
     @property
     def has_status_script(self):
@@ -136,46 +145,37 @@ class ActionModel(GObject.Object):
         type=Gio.ListStore[OptionModel], default=Gio.ListStore(item_type=OptionModel)
     )
     def options(self):
+        return self._options
+
+    async def _get_status(self, status_script: str):
+        # Kludge for protonplus status script
+        # (the rest of the "scripts" work fine without bash loaded)
+        if status_script.startswith("if "):
+            s = [
+                "bash",
+                "--noprofile",
+                "--norc",
+                "-lc",
+                status_script,
+            ]
+        else:
+            s = shlex.split(status_script)
         try:
-            return self._options
-        except AttributeError:
-            return Gio.ListStore(item_type=OptionModel)
-
-    @GObject.Property(type=str, default="")
-    def status(self):
-        """Run status_script to determine current status, cache results"""
-
-        if "status_script" not in self._action:
-            return "NO_STATUS"
-        if self._status:
-            return self._status
-        s = []
-        try:
-            # Kludge for protonplus status script
-            # (the rest of the "scripts" work fine without bash loaded)
-            if self._action["status_script"].startswith("if "):
-                s = [
-                    "bash",
-                    "--noprofile",
-                    "--norc",
-                    "-lc",
-                    self._action["status_script"],
-                ]
-            else:
-                s = shlex.split(self._action["status_script"])
-
-            result = subprocess.run(
-                s,
-                capture_output=True,
-                text=True,
-                check=True,
+            process = await asyncio.create_subprocess_exec(
+                *s, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
-            self._status = result.stdout.strip()
+            stdout, stderr = await process.communicate()
+            if process.returncode != 0:
+                self._status = "ERROR"
+                self._status_detail = stderr.decode()
+                self._selected = INVALID_LIST_POSITION
+                return
+
+            self._status = stdout.decode().strip()
             self._status_detail = None
             for index, option in enumerate(self._options):
                 if option.name == self._status:
                     self._selected = index
-                    self.notify("selected")
                     break
 
         except FileNotFoundError:
@@ -186,12 +186,18 @@ class ActionModel(GObject.Object):
             else:
                 self._status = "NOT_FOUND"
                 self._status_detail = s[0]
+            self._selected = INVALID_LIST_POSITION
 
-        except subprocess.CalledProcessError as error:
-            self._status = "ERROR"
-            self._status_detail = error.stderr
+        finally:
+            self.notify("selected")
+            self.notify("status")
 
-        self.notify("status")
+    @GObject.Property(type=str, default="")
+    def status(self):
+        """Run status_script to determine current status, cache results"""
+
+        if "status_script" not in self._action:
+            return "NO_STATUS"
         return self._status
 
 

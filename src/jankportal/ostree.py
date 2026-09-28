@@ -1,5 +1,5 @@
+import asyncio
 import json
-import subprocess
 import sys
 from typing import TYPE_CHECKING, cast
 
@@ -20,7 +20,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 gi.require_version("WebKit", "6.0")
 
-from gi.repository import Adw, Gio, GObject, Gtk, WebKit  # noqa: E402
+from gi.repository import Adw, Gio, GLib, GObject, Gtk, WebKit  # noqa: E402
 
 # Wait for WebKit to resolve
 GObject.type_ensure(WebKit.WebView.__gtype__)  # type: ignore
@@ -44,17 +44,22 @@ IMAGES = [
 
 
 # Helper functions
-def create_model(panic: Callable[[str], None]):
+async def create_model(panic: Callable[[str], None]):
     """Parse rpm-ostree status into Gio.ListStore"""
     try:
         model = Gio.ListStore(item_type=DeploymentModel)
-        result = subprocess.run(
-            ["rpm-ostree", "status", "--json"],
-            capture_output=True,
-            text=True,
-            check=True,
+        process = await asyncio.create_subprocess_exec(
+            "rpm-ostree",
+            "status",
+            "--json",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
-        ostree_status = json.loads(result.stdout)
+        stdout, stderr = await process.communicate()
+
+        if process.returncode != 0:
+            panic(f"rpm-ostree error: {stderr}")
+        ostree_status = json.loads(stdout)
 
         image: str = ""
         tag: str = ""
@@ -70,30 +75,26 @@ def create_model(panic: Callable[[str], None]):
         panic("rpm-ostree not in $PATH")
         sys.exit(1)  # Never reached, makes type analysis happy
 
-    except subprocess.CalledProcessError as error:
-        panic(f"rpm-ostree error: {error.stderr}")
-        sys.exit(1)  # Never reaced, makes type analysis happy
 
-
-def find_in_string_list(model: Gtk.StringList, string: str):
-    for i in range(model.get_n_items()):
-        if model.get_string(i) == string:
-            return i
-    return -1
-
-
-def get_tags(image: str, panic: Callable[[str], None]) -> tuple[list[str], list[str]]:
+async def get_tags(
+    image: str, panic: Callable[[str], None]
+) -> tuple[list[str], list[str]]:
     """Get tags for a given image from skopeo, sorts them into branches and releases"""
 
     image_uri = f"docker://ghcr.io/ublue-os/{image}"
     try:
-        result = subprocess.run(
-            ["skopeo", "list-tags", image_uri],
-            capture_output=True,
-            text=True,
-            check=True,
+        process = await asyncio.create_subprocess_exec(
+            "skopeo",
+            "list-tags",
+            image_uri,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
-        raw_tags = json.loads(result.stdout)["Tags"]
+        stdout, stderr = await process.communicate()
+        if process.returncode != 0:
+            panic(f"skopeo error: {stderr}")
+
+        raw_tags = json.loads(stdout)["Tags"]
         # filter for just stable and testing tags
         tags = [tag for tag in raw_tags if tag.startswith(("stable", "testing"))]
         branch_tags: list[str] = []
@@ -107,10 +108,6 @@ def get_tags(image: str, panic: Callable[[str], None]) -> tuple[list[str], list[
 
     except FileNotFoundError:
         panic("skopeo not in $PATH")
-        sys.exit(1)  # Never reaced, makes type analysis happy
-
-    except subprocess.CalledProcessError as error:
-        panic(f"skopeo error: {error.stderr}")
         sys.exit(1)  # Never reaced, makes type analysis happy
 
 
@@ -189,7 +186,7 @@ def create_row(
     return row
 
 
-def create_page(
+async def create_page(
     model: Gio.ListStore[DeploymentModel],
     current_image: str,
     current_tag: str,
@@ -213,21 +210,24 @@ def create_page(
     image_model = Gtk.StringList.new(sorted(filtered_images))
 
     page.image.set_model(image_model)
-    if (index := find_in_string_list(image_model, current_image)) >= 0:
-        page.image.set_selected(index)
-    else:
+    index = image_model.find(current_image)
+    if index == GLib.MAXUINT:
         image_model.append(current_image)
-        page.image.set_selected(image_model.get_n_items())
+        page.image.set_selected(len(image_model))
+    else:
+        page.image.set_selected(index)
+
     # Only show branch tags
-    branch_tags, _release_tags = get_tags(current_image, panic)
+    branch_tags, _release_tags = await get_tags(current_image, panic)
     tag_model = Gtk.StringList.new(sorted(branch_tags))
 
     page.tag.set_model(tag_model)
-    if (index := find_in_string_list(tag_model, current_tag)) >= 0:
-        page.tag.set_selected(index)
-    else:
+    index = tag_model.find(current_tag)
+    if index == GLib.MAXUINT:
         tag_model.append(current_tag)
         page.tag.set_selected(tag_model.get_n_items())
+    else:
+        page.tag.set_selected(index)
 
     deploy_list = Gtk.ListBox(
         selection_mode=Gtk.SelectionMode.NONE,
@@ -244,7 +244,9 @@ class OSTreeUI:
         """Builds ViewStackPage based on rpm-ostree status, appends to window.stack"""
 
         self.window = window
-        self.model, self.image, self.tag = create_model(window.panic)
+
+    async def initialize(self):
+        self.model, self.image, self.tag = await create_model(self.window.panic)
 
         def row_factory(deployment: DeploymentModel):
             return create_row(
@@ -255,17 +257,16 @@ class OSTreeUI:
                 self.on_rebase_activated,
             )
 
-        self.page = create_page(
+        self.page = await create_page(
             self.model, self.image, self.tag, row_factory, self.window.panic
         )
-        self.image_idx = find_in_string_list(
-            cast("Gtk.StringList", self.page.image.props.model), self.image
+        self._image_index = cast("Gtk.StringList", self.page.image.props.model).find(
+            self.image
         )
-        self.tag_idx = find_in_string_list(
-            cast("Gtk.StringList", self.page.tag.props.model), self.tag
+
+        self._tag_index = cast("Gtk.StringList", self.page.tag.props.model).find(
+            self.tag
         )
-        # For some weird reason setting signal handlers in the blueprint
-        # breaks the styling on the parent ListBox
         self.page.img_rebase.connect("activated", self.on_img_rebase_activated)
         self.page.img_reset.connect("activated", self.on_img_reset_activated)
         self.page.image.connect("notify::selected-item", self.on_image_selected)
@@ -291,8 +292,8 @@ class OSTreeUI:
         )
 
     def on_img_reset_activated(self, button_row: Adw.ButtonRow):
-        self.page.image.set_selected(self.image_idx)
-        self.page.tag.set_selected(self.tag_idx)
+        self.page.image.set_selected(self._image_index)
+        self.page.tag.set_selected(self._tag_index)
 
     def _handle_img_action_visibility(self):
         visible = not (

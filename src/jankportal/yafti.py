@@ -25,7 +25,6 @@ def create_model(
     panic_func: Callable[[str], None], file_name: str = "/usr/share/yafti/yafti.yml"
 ):
     """Parse YAFTI YML into Gio.ListStore"""
-
     try:
         path = Path(file_name)
         with path.open() as file:
@@ -45,7 +44,7 @@ def create_model(
         sys.exit(1)
 
 
-def create_status_icon(type: str, description: str = ""):
+def create_emblem(type: str, description: str = ""):
     """Make no status emblem for rows with options, but no status script"""
     icon = None
     match type:
@@ -71,6 +70,22 @@ def create_status_icon(type: str, description: str = ""):
     return icon
 
 
+def on_status_changed(
+    action: ActionModel,
+    g_param_spec: GObject.ParamSpec,
+    emblem_box: Gtk.Box,
+    action_box: Gtk.Box | None = None,
+):
+    while (child := emblem_box.get_first_child()) is not None:
+        emblem_box.remove(child)
+    if action.status.isupper():
+        emblem = create_emblem(action.status, action.status_detail or "")
+        if emblem:
+            emblem_box.append(emblem)
+        if action.status == "NOT_A_DECK" and isinstance(action_box, Gtk.Box):
+            action_box.props.visible = False
+
+
 def create_dropdown_row(
     action: ActionModel,
     callback: Callable[[Gtk.Widget, str, str], None],
@@ -93,12 +108,13 @@ def create_dropdown_row(
     )
     drop_down.add_css_class("flat-dropdown")
     align_drop_down(drop_down)
-    box = Gtk.Box(width_request=16, name="emblem_box")
-    row.add_suffix(box)
+    emblem_box = Gtk.Box(width_request=16, name="emblem_box")
+    row.add_suffix(emblem_box)
     row.add_suffix(drop_down)
-    emblem = create_status_icon(action.status, action.status_detail or "")
+    emblem = create_emblem(action.status, action.status_detail or "")
+    action.connect("notify::status", on_status_changed, emblem_box)
     if emblem:
-        box.append(emblem)
+        emblem_box.append(emblem)
     action.bind_property(
         "selected", drop_down, "selected", GObject.BindingFlags.SYNC_CREATE
     )
@@ -115,12 +131,11 @@ def create_button_group_row(
     action_box = Gtk.Box()
     action_box.add_css_class("action-button-group")
     emblem_box = Gtk.Box(width_request=16)
-    emblem = create_status_icon(action.status)
+    emblem = create_emblem(action.status)
+    action.connect("notify::status", on_status_changed, emblem_box, action_box)
     if emblem:
         emblem_box.append(emblem)
     row.add_suffix(emblem_box)
-    if action.status == "NOT_A_DECK":
-        return row
     row.add_suffix(action_box)
     prev = None
     for index, option in enumerate(action.options):
