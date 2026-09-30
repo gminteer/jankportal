@@ -88,14 +88,14 @@ def on_status_changed(
 
 def create_dropdown_row(
     action: ActionModel,
-    callback: Callable[[Gtk.Widget, str, str], None],
+    callback: Callable[[Gtk.Widget, str, str, Callable[[], None] | None], None],
 ):
     """Create an ActionRow with a DropDown"""
 
     def on_row_selected(drop_down: Gtk.DropDown, g_param_spec: GObject.ParamSpec):
         """Adapt on_row_selected event to the button style callback we received"""
         option = cast("OptionModel", drop_down.get_selected_item())
-        callback(drop_down, option.label, option.script)
+        callback(drop_down, option.label, option.script, option.parent.refresh)
 
     row = Adw.ActionRow(title=action.title, subtitle=action.description)
     drop_down = Gtk.DropDown(
@@ -125,7 +125,7 @@ def create_dropdown_row(
 
 def create_button_group_row(
     action: ActionModel,
-    callback: Callable[[Gtk.Widget, str, str], None],
+    callback: Callable[[Gtk.Widget, str, str, Callable[[], None] | None], None],
 ):
     row = Adw.ActionRow(title=action.title, subtitle=action.description)
     action_box = Gtk.Box()
@@ -147,7 +147,7 @@ def create_button_group_row(
             css_classes=["action-button"],
             valign=Gtk.Align.CENTER,
         )
-        button.connect("clicked", callback, option.label, option.script)
+        button.connect("clicked", callback, option.label, option.script, action.refresh)
         option.bind_property(
             "active", button, "active", GObject.BindingFlags.SYNC_CREATE
         )
@@ -168,7 +168,7 @@ def create_button_group_row(
 
 def create_row(
     action: ActionModel,
-    callback: Callable[[Gtk.Widget, str, str], None],
+    callback: Callable[[Gtk.Widget, str, str, Callable[[], None] | None], None],
 ):
     """Create row widget for an action"""
 
@@ -188,7 +188,7 @@ def create_row(
 
 def create_pages(
     model: Gio.ListStore[PageModel],
-    callback: Callable[[Gtk.Widget, str, str], None],
+    callback: Callable[[Gtk.Widget, str, str, Callable[[], None] | None], None],
     filter: Gtk.CustomFilter,
 ):
     def row_factory(action: ActionModel):
@@ -265,13 +265,19 @@ class YaftiUI:
         search_wrapper = cast("Gtk.Widget", window.stack.get_child_by_name("search"))
         self.search = window.stack.get_page(search_wrapper)
 
-    def on_widget_activated(self, widget: Gtk.Widget, title: str, script: str):
+    def on_widget_activated(
+        self,
+        widget: Gtk.Widget,
+        title: str,
+        script: str,
+        vte_done_callback: Callable[[], None] | None = None,
+    ):
         """Pass a script along to the window's command runner"""
 
         # Ignore activation if the widget is an already active ToggleButton
-        if isinstance(widget, Gtk.ToggleButton) and widget.props.active:
-            return
-        self.window.command_runner(title, script)
+        # if isinstance(widget, Gtk.ToggleButton) and widget.props.active:
+        #     return
+        self.window.command_runner(title, script, vte_done_callback=vte_done_callback)
 
     def on_search_changed(self, entry: Gtk.SearchEntry):
         """Bind search entry text changes to GTK.CustomFilter changes"""

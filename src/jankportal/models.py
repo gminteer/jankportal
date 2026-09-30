@@ -100,11 +100,7 @@ class ActionModel(GObject.Object):
         for option in action["options"]:
             self._options.append(OptionModel(option, self))
         if "status_script" in action:
-            self._async_task = asyncio.create_task(
-                self._get_status(action["status_script"])
-            )
-            self._async_task.add_done_callback(self._cleanup_task)
-            self._status = "AWAITING_FUTURE"
+            self.refresh()
 
     def _cleanup_task(self, task: asyncio.Task[None]):
         self._async_task = None
@@ -146,6 +142,15 @@ class ActionModel(GObject.Object):
     )
     def options(self):
         return self._options
+
+    def refresh(self):
+        if "status_script" not in self._action:
+            return
+        self._async_task = asyncio.create_task(
+            self._get_status(self._action["status_script"])
+        )
+        self._async_task.add_done_callback(self._cleanup_task)
+        self._status = "AWAITING_FUTURE"
 
     async def _get_status(self, status_script: str):
         # Kludge for protonplus status script

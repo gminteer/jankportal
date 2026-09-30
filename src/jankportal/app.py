@@ -3,6 +3,10 @@ import os
 import sys
 from importlib.metadata import version
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 import gi
 from gi.events import GLibEventLoopPolicy
@@ -82,6 +86,9 @@ class JankPortalWindow(Adw.ApplicationWindow):
     def on_child_exited(self, terminal: Vte.Terminal, status: int):
         """Countdown from DELAY, then close VTE sheet and unwire bottom sheet opener"""
 
+        if self._vte_done_callback is not None:
+            self._vte_done_callback()  # type: ignore
+
         self._vte_is_running = False
         title_prefix = "[Exited]" if status == 0 else f"[Exited with code {status}]"
         if self.keep_vte_open.props.active:
@@ -128,10 +135,16 @@ class JankPortalWindow(Adw.ApplicationWindow):
         self.bottom_sheet.props.open = True
         self.vte.grab_focus()
 
-    def command_runner(self, title: str, script: str) -> None:
+    def command_runner(
+        self,
+        title: str,
+        script: str,
+        vte_done_callback: Callable[[], None] | None = None,
+    ) -> None:
         """Pass script to terminal widget"""
         if not self._ready:
             return
+        self._vte_done_callback = vte_done_callback
         self.command_label.props.label = title
         self.vte.spawn_async(
             pty_flags=Vte.PtyFlags.DEFAULT,
