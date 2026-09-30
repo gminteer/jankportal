@@ -11,7 +11,7 @@ authors = [
 dependencies = [
     "markdown>=3.10.3",
     "pyyaml>=6.0.3",
-    "requests>=2.34.2",
+    "requests>=2.33.1",
 ]
 
 [dependency-groups]
@@ -21,7 +21,7 @@ dev = [
     "uv-dynamic-versioning>=0.14.1",
 ]
 
-[project.gui-scripts]
+[project.scripts]
 jankportal = "jankportal.app:main"
 
 [build-system]
@@ -73,6 +73,10 @@ skip-magic-trailing-comma = false
 [tool.hatch.build.hooks.custom]
 path = "hatch_build.py"
 
+[tool.hatch.build.targets.wheel]
+artifacts = [
+    "src/jankportal/*.gresource"
+]
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
 
@@ -82,3 +86,15 @@ vcs = "git"
 style = "pep440"
 metadata = true
 dirty = true
+
+[external]
+build-requires = [
+    "dep:pkg:rpm/fedora/blueprint-compiler@>=0.20.4",
+    "dep:pkg:rpm/fedora/glib2-devel@>=2.88.3"
+]
+host-requires = [
+    "dep:pkg:rpm/fedora/python3-gobject@>=3.56.3",
+    "dep:pkg:rpm/fedora/libadwaita@>=1.9.4",
+    "dep:pkg:rpm/fedora/vte2.91-gtk4@>=0.84.1",
+    "dep:pkg:rpm/fedora/webkitgtk6.0@>=2.54.0",
+]

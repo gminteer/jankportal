@@ -162,7 +162,7 @@ dev = [
 requires-dist = [
     { name = "markdown", specifier = ">=3.10.3" },
     { name = "pyyaml", specifier = ">=6.0.3" },
-    { name = "requests", specifier = ">=2.34.2" },
+    { name = "requests", specifier = ">=2.33.1" },
 ]
 
 [package.metadata.requires-dev]
