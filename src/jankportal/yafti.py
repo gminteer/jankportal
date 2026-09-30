@@ -151,6 +151,9 @@ def create_button_group_row(
         option.bind_property(
             "active", button, "active", GObject.BindingFlags.SYNC_CREATE
         )
+        option.bind_property(
+            "active", button, "sensitive", GObject.BindingFlags.INVERT_BOOLEAN
+        )
         if prev:
             button.set_group(prev)
         prev = button
@@ -274,9 +277,6 @@ class YaftiUI:
     ):
         """Pass a script along to the window's command runner"""
 
-        # Ignore activation if the widget is an already active ToggleButton
-        # if isinstance(widget, Gtk.ToggleButton) and widget.props.active:
-        #     return
         self.window.command_runner(title, script, vte_done_callback=vte_done_callback)
 
     def on_search_changed(self, entry: Gtk.SearchEntry):
