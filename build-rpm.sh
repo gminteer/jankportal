@@ -9,4 +9,4 @@ distrobox enter fedora -- rpmbuild\
     --define "_rpmdir $(pwd)/dist"\
     --define "_specdir $(pwd)"\
     --define "_srcrpmdir $(pwd)/dist"\
-    -ba python-jankportal.spec
+    -ba jankportal.spec
