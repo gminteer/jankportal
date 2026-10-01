@@ -44,6 +44,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
     search: Gtk.SearchEntry = Gtk.Template.Child()
     keep_vte_open: Gtk.ToggleButton = Gtk.Template.Child()
     overlay: Adw.ToastOverlay = Gtk.Template.Child()
+    split_view: Adw.OverlaySplitView = Gtk.Template.Child()
 
     def __init__(self, application: Adw.Application):
         super().__init__(application=application)

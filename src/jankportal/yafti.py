@@ -252,6 +252,8 @@ class YaftiUI:
         self.search_text = ""
         self.last_page = "welcome"
         self.window.search.connect("search-changed", self.on_search_changed)
+        self.window.search.connect("search-started", self.on_search_started)
+        self.window.search.connect("stop-search", self.on_stop_search)
 
         def filter_func(item: ActionModel):
             return filter(item, self.search_text)
@@ -288,5 +290,13 @@ class YaftiUI:
             if self.window.stack.props.visible_child_name != "search":
                 self.last_page = self.window.stack.props.visible_child_name
             self.window.stack.props.visible_child_name = "search"
+            self.window.split_view.props.show_sidebar = False
         else:
             self.window.stack.props.visible_child_name = self.last_page
+            self.window.split_view.props.show_sidebar = True
+
+    def on_search_started(self, entry: Gtk.SearchEntry):
+        self.window.search.grab_focus()
+
+    def on_stop_search(self, entry: Gtk.SearchEntry):
+        self.window.search.props.text = ""
