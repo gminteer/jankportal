@@ -4,13 +4,13 @@ A Clone of [Bazzite Portal](https://github.com/xXJSONDeruloXx/yafti-gtk), also u
 
 ## Installation
 
-To be figured out. I haven't started packaging releases yet, so currently installation is something like:
+At some point I'll start actually building it and putting up releases. But for now the process is:
 
-1. Sort out external dependencies (see below)
-2. Clone this repo
-3. Run `uv sync` to install python dependencies
-4. Run `uv build` to build the GTK resource file JankPortal needs at runtime
-5. Then you should be able to start Jank Portal by running `uv run jankportal`
+1. Clone this repo
+2. Run `./build_distrobox.sh` to assemble a distrobox with all needed dependencies installed.
+3. Run `./jankbuild.sh` to build an RPM
+4. Use `rpm-ostree` to install the resulting RPM, and reboot.
+5. Get annoyed that I haven't bundled an .desktop file yet so you have to run `jankportal` in a terminal or make your own launch menu entry for it.
 
 ### External Dependencies
 

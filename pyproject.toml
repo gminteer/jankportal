@@ -71,12 +71,13 @@ quote-style = "double"
 skip-magic-trailing-comma = false
 
 [tool.hatch.build.hooks.custom]
-path = "hatch_build.py"
+path = "build_gresource.py"
 
 [tool.hatch.build.targets.wheel]
 artifacts = [
     "src/jankportal/*.gresource"
 ]
+
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
 
