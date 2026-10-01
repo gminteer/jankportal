@@ -7,14 +7,15 @@ import gi
 import markdown
 import requests
 
-from .lib import align_drop_down
-from .models import DeploymentModel
-from .templates import OSTree
+from jankportal.lib import align_drop_down
+
+from .models import Deployment
+from .templates import Changelog, DeploymentActions, OverlayList, Page, Row
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from .app import JankPortalWindow
+    from jankportal.app import JankPortalWindow
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -47,7 +48,7 @@ IMAGES = [
 async def create_model(panic: Callable[[str], None]):
     """Parse rpm-ostree status into Gio.ListStore"""
     try:
-        model = Gio.ListStore(item_type=DeploymentModel)
+        model = Gio.ListStore(item_type=Deployment)
         process = await asyncio.create_subprocess_exec(
             "rpm-ostree",
             "status",
@@ -64,7 +65,7 @@ async def create_model(panic: Callable[[str], None]):
         image: str = ""
         tag: str = ""
         for index, deployment in enumerate(ostree_status["deployments"]):
-            model.append(DeploymentModel(index=index, deployment=deployment))
+            model.append(Deployment(index=index, deployment=deployment))
             if deployment["booted"]:
                 image, tag = (
                     deployment["container-image-reference"].split("/")[-1].split(":")
@@ -133,7 +134,7 @@ def wrap_html(changelog: str):
 
 # Component builders
 def create_row(
-    deployment: DeploymentModel,
+    deployment: Deployment,
     on_changelog_clicked: Callable[[Gtk.Button, str], None],
     on_pinned_active: Callable[[Adw.SwitchRow, GObject.ParamSpec, int], None],
     on_remove_clicked: Callable[[Gtk.Button, str], None],
@@ -141,7 +142,7 @@ def create_row(
 ):
     """Create expander rows for each deployment"""
 
-    row = OSTree.Row()
+    row = Row()
     row.props.title = f"{deployment.index}: Version {deployment.version}"
     if len(deployment.overlays) > 0:
         row.props.subtitle = f"({len(deployment.overlays)} overlaid packages)"
@@ -160,7 +161,7 @@ def create_row(
     row.changelog.connect("clicked", on_changelog_clicked, deployment.version)
 
     # Add subrows for deployment actions
-    actions = OSTree.DeploymentActions()
+    actions = DeploymentActions()
     actions.pin.connect("notify::active", on_pinned_active, deployment.index)
     actions.rebase.connect(
         "activated", on_rebase_activated, deployment.image, deployment.version
@@ -169,7 +170,7 @@ def create_row(
 
     # Add subrows for overlaid packages with remove buttons if deployment is booted
     if len(deployment.overlays) > 0:
-        overlays = OSTree.OverlayList()
+        overlays = OverlayList()
 
         for overlay in deployment.overlays:
             overlay_row = Adw.ActionRow(title=overlay)
@@ -187,13 +188,13 @@ def create_row(
 
 
 async def create_page(
-    model: Gio.ListStore[DeploymentModel],
+    model: Gio.ListStore[Deployment],
     current_image: str,
     current_tag: str,
-    row_factory: Callable[[DeploymentModel], Adw.ExpanderRow],
+    row_factory: Callable[[Deployment], Adw.ExpanderRow],
     panic: Callable[[str], None],
 ):
-    page = OSTree.Page()
+    page = Page()
     align_drop_down(page.image)
     align_drop_down(page.tag)
 
@@ -239,7 +240,7 @@ async def create_page(
     return page
 
 
-class OSTreeUI:
+class OSTreeView:
     def __init__(self, window: JankPortalWindow):
         """Builds ViewStackPage based on rpm-ostree status, appends to window.stack"""
 
@@ -248,7 +249,7 @@ class OSTreeUI:
     async def initialize(self):
         self.model, self.image, self.tag = await create_model(self.window.panic)
 
-        def row_factory(deployment: DeploymentModel):
+        def row_factory(deployment: Deployment):
             return create_row(
                 deployment,
                 self.on_changelog_clicked,
@@ -326,7 +327,7 @@ class OSTreeUI:
         changelog = wrap_html(
             markdown.markdown(raw_changelog, extensions=["extra", "codehilite"])
         )
-        dialog = OSTree.Changelog()
+        dialog = Changelog()
         dialog.bar.props.subtitle = f"v{tag}"
         dialog.web_view.load_html(changelog)
         dialog.present(self.window)

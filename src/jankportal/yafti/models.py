@@ -5,62 +5,18 @@ from typing import TYPE_CHECKING
 from gi.repository import Gio, GLib, GObject
 
 if TYPE_CHECKING:
-    from .types import OSTreeType, YaftiType
+    from . import types
+
 
 INVALID_LIST_POSITION = -1
 
 
-# OSTree
-class DeploymentModel(GObject.Object):
-    """GObject adapter for OSTree deployment"""
-
-    __gtype_name__ = "DeploymentModel"
-
-    def __init__(self, index: int, deployment: OSTreeType.Deployment):
-        super().__init__()
-        self._data = deployment
-        self._index = index
-        self._overlays = [
-            *deployment["packages"],
-            *deployment["requested-local-packages"],
-        ]
-
-    @GObject.Property(type=int, default=-1)
-    def index(self):
-        return self._index
-
-    @GObject.Property(type=str, default="")
-    def image(self):
-        return self._data["container-image-reference"].split("/")[-1]
-
-    @GObject.Property(type=str, default="")
-    def version(self):
-        return self._data["version"]
-
-    @GObject.Property(type=bool, default=False)
-    def pinned(self):
-        return self._data["pinned"]
-
-    @GObject.Property(type=bool, default=False)
-    def booted(self):
-        return self._data["booted"]
-
-    @GObject.Property(type=bool, default=False)
-    def staged(self):
-        return self._data["staged"]
-
-    @property
-    def overlays(self):
-        return self._overlays
-
-
-# YAFTI
-class OptionModel(GObject.Object):
+class Option(GObject.Object):
     """GObject adapter for YAFTI option"""
 
     __gtype_name__ = "OptionModel"
 
-    def __init__(self, option: YaftiType.Option, parent: ActionModel):
+    def __init__(self, option: types.Option, parent: Action):
         super().__init__()
         self._option = option
         self.parent = parent
@@ -83,22 +39,22 @@ class OptionModel(GObject.Object):
         return self.parent.status == self.name
 
 
-class ActionModel(GObject.Object):
+class Action(GObject.Object):
     """GObject adapter for YAFTI action"""
 
     __gtype_name__ = "ActionModel"
 
-    def __init__(self, action: YaftiType.Action):
+    def __init__(self, action: types.Action):
         super().__init__()
         self._action = action
         self._status = None
         self._selected = INVALID_LIST_POSITION
         self._status_detail = None
-        self._options = Gio.ListStore(item_type=OptionModel)
+        self._options = Gio.ListStore(item_type=Option)
         if "options" not in action:
             return
         for option in action["options"]:
-            self._options.append(OptionModel(option, self))
+            self._options.append(Option(option, self))
         if "status_script" in action:
             self.refresh()
 
@@ -138,7 +94,7 @@ class ActionModel(GObject.Object):
         return self._action["default"]
 
     @GObject.Property(
-        type=Gio.ListStore[OptionModel], default=Gio.ListStore(item_type=OptionModel)
+        type=Gio.ListStore[Option], default=Gio.ListStore(item_type=Option)
     )
     def options(self):
         return self._options
@@ -206,17 +162,17 @@ class ActionModel(GObject.Object):
         return self._status
 
 
-class PageModel(GObject.Object):
+class Page(GObject.Object):
     """GObject adapter for YAFTI page"""
 
     __gtype_name__ = "PageModel"
 
-    def __init__(self, page: YaftiType.Page):
+    def __init__(self, page: types.Page):
         super().__init__()
         self._page = page
-        actions = Gio.ListStore(item_type=ActionModel)
+        actions = Gio.ListStore(item_type=Action)
         for action in self._page["actions"]:
-            actions.append(ActionModel(action))
+            actions.append(Action(action))
         self._actions = actions
 
     @GObject.Property(type=str, default="")

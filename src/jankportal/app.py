@@ -28,8 +28,8 @@ resource = Gio.Resource.load(str(resource_path))
 Gio.resources_register(resource)
 
 # Need resources loaded first
-from .ostree import OSTreeUI  # noqa: E402
-from .yafti import YaftiUI  # noqa: E402
+from .ostree.view import OSTreeView  # noqa: E402
+from .yafti.view import YaftiView  # noqa: E402
 
 
 @Gtk.Template(resource_path=f"{APP_PATH}/app.ui")
@@ -182,9 +182,9 @@ class JankPortalWindow(Adw.ApplicationWindow):
     async def append_components(self) -> None:
         """Add ViewStackPages to main window"""
 
-        self.yafti_ui = YaftiUI(self)
+        self.yafti_view = YaftiView(self)
         self.stack.props.visible_child_name = "welcome"
-        self.ostree_ui = OSTreeUI(self)
+        self.ostree_view = OSTreeView(self)
         placeholder = Adw.Bin(
             child=Adw.StatusPage(
                 title="Wait a moment",
@@ -192,7 +192,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
             )
         )
         self.stack.add_titled(child=placeholder, name="ostree", title="Deployments")
-        await self.ostree_ui.initialize()
+        await self.ostree_view.initialize()
         self._ready = True
 
 
