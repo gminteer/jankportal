@@ -17,4 +17,4 @@ distrobox enter jankbuild -- rpmbuild\
     -ba jankportal.spec
 
 echo If you didn\'t see any errors, the RPM should be built.
-echo To install, type \"rpm-ostree install dist/noarch/jankportal-$PKG_VERSION\-1.fc44.noarch.rpm" \(and reboot\)
+echo To install, type \"rpm-ostree install dist/noarch/jankportal-$PKG_VERSION-1.fc44.noarch.rpm\" \(and reboot\)
