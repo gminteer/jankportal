@@ -54,15 +54,12 @@ template $JankPortalWindow : Adw.ApplicationWindow {
                         ToggleButton keep_vte_open {
                             tooltip-text: _("Keep command runner open after command exits");
                             icon-name: "window-pin-symbolic";
-                            margin-top: 10;
-                            margin-bottom: 10;
                             styles ["circular"]
                             clicked => $on_keep_vte_open_clicked();
                         }
 
                         title-widget: Label command_label {
                             label: _("");
-                            margin-bottom: 10;
                             ellipsize: end;
                             styles ["heading"]
                         };
