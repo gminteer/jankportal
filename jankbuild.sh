@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 PKG_VERSION=$(uvx hatch version)
 PKG_SUMMARY=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['description'])")
-PKG_REQUIRES=$(python3 -c "import tomllib; print(' '.join([dep.split('/')[-1].replace('@','') for dep in tomllib.load(open('pyproject.toml', 'rb'))['external']['host-requires']]))")
+PKG_REQUIRES=$(python3 -c "import tomllib; print(' '.join([dep.split('/')[-1].replace('@>=',' >= ') for dep in tomllib.load(open('pyproject.toml', 'rb'))['external']['host-requires']]))")
 PKG_BUILD_REQUIRES=$(python3 -c "import tomllib; print(' '.join([dep.split('/')[-1].replace('@>=',' >= ') for dep in tomllib.load(open('pyproject.toml', 'rb'))['external']['build-requires']]))")
 
 distrobox enter jankbuild -- uv build
