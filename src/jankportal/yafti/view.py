@@ -88,6 +88,30 @@ def on_status_changed(
             action_box.props.visible = False
 
 
+def create_expander_row(
+    action: Action,
+    callback: Callable[[Gtk.Widget, str, str, Callable[[], None] | None], None],
+):
+    """Create an ExpanderRow with ActionRows"""
+    row = Adw.ExpanderRow(title=action.title, subtitle=action.description)
+    emblem_box = Gtk.Box(width_request=16, name="emblem-box")
+    row.add_suffix(emblem_box)
+    emblem = create_emblem(action.status, "")
+    if emblem:
+        emblem_box.append(emblem)
+    container = Gtk.ListBox(
+        selection_mode=Gtk.SelectionMode.NONE, css_classes=["boxed-list", "sub-list"]
+    )
+    row.add_row(container)
+    for option in action.options:
+        option = cast("Option", option)
+        option_row = Adw.ActionRow(title=option.label, name=option.name)
+        option_row.props.activatable = True
+        option_row.connect("activated", callback, option.label, option.script)
+        container.append(option_row)
+    return row
+
+
 def create_dropdown_row(
     action: Action,
     callback: Callable[[Gtk.Widget, str, str, Callable[[], None] | None], None],
@@ -180,7 +204,10 @@ def create_row(
     option_count = action.options.get_n_items()
 
     if option_count > 3:
-        row = create_dropdown_row(action, callback)
+        if action.has_status_script:
+            row = create_dropdown_row(action, callback)
+        else:
+            row = create_expander_row(action, callback)
     elif option_count > 0:
         row = create_button_group_row(action, callback)
     else:
