@@ -8,13 +8,8 @@ URL:            https://github.com/gminteer/jankportal
 Source:         %{name}-%{version}.tar.gz
 
 BuildArch:      noarch
-BuildRequires:  python3-devel
-BuildRequires:  blueprint-compiler >= 0.20.4
-BuildRequires:  glib2-devel >= 2.88.3
-Requires:       libadwaita >= 1.9.4
-Requires:       python3-gobject >= 3.56.3
-Requires:       vte291-gtk4 >= 0.84.1
-Requires:       webkitgtk6.0 >= 2.54.0
+BuildRequires:  python3-devel %{pkg_build_requires}
+Requires:       %{pkg_requires}
 
 %global _description %{expand:
 A simple GUI to run Bazzite setup scripts/utilities and manage system deployments.}

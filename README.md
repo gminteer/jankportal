@@ -4,7 +4,7 @@ A Clone of [Bazzite Portal](https://github.com/xXJSONDeruloXx/yafti-gtk), also u
 
 ## Installation
 
-At some point I'll start actually building it and putting up releases. But for now the process is:
+At some point I'll start actually putting up releases, but until then:
 
 1. Clone this repo
 2. Run `./build_distrobox.sh` to assemble a distrobox with all needed dependencies installed.

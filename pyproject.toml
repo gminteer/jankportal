@@ -91,7 +91,7 @@ dirty = true
 [external]
 build-requires = [
     "dep:pkg:rpm/fedora/blueprint-compiler@>=0.20.4",
-    "dep:pkg:rpm/fedora/glib2-devel@>=2.88.3"
+    "dep:pkg:rpm/fedora/glib2-devel@>=2.88.3",
 ]
 host-requires = [
     "dep:pkg:rpm/fedora/python3-gobject@>=3.56.3",
