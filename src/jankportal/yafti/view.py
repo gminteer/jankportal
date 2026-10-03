@@ -136,6 +136,7 @@ def create_dropdown_row(
             property_name="label",
         ),
         model=action.options,
+        name=action.name,
     )
     drop_down.add_css_class("flat-dropdown")
     align_drop_down(drop_down)
@@ -158,7 +159,9 @@ def create_button_group_row(
     action: Action,
     callback: Callable[[Gtk.Widget, str, str, Callable[[], None] | None], None],
 ):
-    row = Adw.ActionRow(title=action.title, subtitle=action.description)
+    row = Adw.ActionRow(
+        title=action.title, subtitle=action.description, name=action.name
+    )
     action_box = Gtk.Box()
     action_box.add_css_class("action-button-group")
     emblem_box = Gtk.Box(width_request=16)
@@ -216,7 +219,9 @@ def create_row(
     elif option_count > 0:
         row = create_button_group_row(action, callback)
     else:
-        row = Adw.ActionRow(title=action.title, subtitle=action.description)
+        row = Adw.ActionRow(
+            title=action.title, subtitle=action.description, name=action.name
+        )
         row.props.activatable = True
         row.connect("activated", callback, action.title, action.script)
 
