@@ -48,7 +48,6 @@ class JankPortalWindow(Adw.ApplicationWindow):
 
     def __init__(self, application: Adw.Application):
         super().__init__(application=application)
-        self._ready = False
         self.vte.connect("child-exited", self.on_child_exited)
         self.search.set_key_capture_widget(self)
         self._vte_is_running = False
@@ -143,8 +142,6 @@ class JankPortalWindow(Adw.ApplicationWindow):
         vte_done_callback: Callable[[], None] | None = None,
     ) -> None:
         """Pass script to terminal widget"""
-        if not self._ready:
-            return
         self._vte_done_callback = vte_done_callback
         self.command_label.props.label = title
         self.vte.spawn_async(
@@ -193,7 +190,6 @@ class JankPortalWindow(Adw.ApplicationWindow):
         )
         self.stack.add_titled(child=placeholder, name="ostree", title="Deployments")
         await self.ostree_view.initialize()
-        self._ready = True
 
 
 class JankPortalApp(Adw.Application):

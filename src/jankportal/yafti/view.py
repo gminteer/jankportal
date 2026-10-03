@@ -118,9 +118,14 @@ def create_dropdown_row(
 ):
     """Create an ActionRow with a DropDown"""
 
-    def on_row_selected(drop_down: Gtk.DropDown, g_param_spec: GObject.ParamSpec):
+    def on_row_selected(
+        drop_down: Gtk.DropDown, g_param_spec: GObject.ParamSpec, last_status: str
+    ):
         """Adapt on_row_selected event to the button style callback we received"""
         option = cast("Option", drop_down.get_selected_item())
+        # don't fire activation event on initial status value resolution
+        if last_status == "AWAITING_FUTURE":
+            return
         callback(drop_down, option.label, option.script, option.parent.refresh)
 
     row = Adw.ActionRow(title=action.title, subtitle=action.description)
@@ -145,7 +150,7 @@ def create_dropdown_row(
         "selected", drop_down, "selected", GObject.BindingFlags.SYNC_CREATE
     )
     row.props.activatable_widget = drop_down
-    drop_down.connect("notify::selected-item", on_row_selected)
+    drop_down.connect("notify::selected-item", on_row_selected, action.status)
     return row
 
 
