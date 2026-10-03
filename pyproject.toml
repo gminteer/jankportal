@@ -89,6 +89,8 @@ metadata = true
 dirty = true
 
 [external]
+# the scripts blindly assume "dep:pkg:rpm/fedora/"
+# (don't use any other namespace without adjustments)
 build-requires = [
     "dep:pkg:rpm/fedora/blueprint-compiler@>=0.20.4",
     "dep:pkg:rpm/fedora/glib2-devel@>=2.88.3",
@@ -96,6 +98,6 @@ build-requires = [
 host-requires = [
     "dep:pkg:rpm/fedora/python3-gobject@>=3.56.3",
     "dep:pkg:rpm/fedora/libadwaita@>=1.9.4",
-    "dep:pkg:rpm/fedora/vte2.91-gtk4@>=0.84.1",
+    "dep:pkg:rpm/fedora/vte-2.91-gtk4@>=0.84.1",
     "dep:pkg:rpm/fedora/webkitgtk6.0@>=2.54.0",
 ]
