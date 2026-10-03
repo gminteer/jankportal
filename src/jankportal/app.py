@@ -2,7 +2,7 @@ import asyncio
 import os
 import sys
 from importlib.metadata import version
-from pathlib import Path
+from importlib.resources import files
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -23,8 +23,8 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Vte  # noqa: E402
 GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
 
 # Load GTK resources
-resource_path = Path(__file__).parent / "resources.gresource"
-resource = Gio.Resource.load(str(resource_path))
+resource_blob = files("jankportal").joinpath("resources.gresource").read_bytes()
+resource = Gio.Resource.new_from_data(GLib.Bytes.new(resource_blob))
 Gio.resources_register(resource)
 
 # Need resources loaded first
