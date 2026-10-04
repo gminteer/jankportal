@@ -33,3 +33,7 @@
   background: transparent;
   box-shadow: none;
 }
+
+.button-prompt {
+    font-family: PromptFont;
+}

@@ -56,3 +56,4 @@ This project is licensed under the GPL-3.0 or newer license, see [LICENSE](licen
 ## Acknowledgements
 
 - The Bazzite team, specifically the [Bazzite Portal author](https://github.com/xXJSONDeruloXx), whoever wrote `bazzite-rollback-helper`, and Zach on the Bazzite discord.
+- [PromptFont](https://shinmera.com/promptfont) by Shinmera (Yukari Hafner)

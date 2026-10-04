@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+import tempfile
 from importlib.metadata import version
 from importlib.resources import files
 from typing import TYPE_CHECKING
@@ -12,13 +13,23 @@ import gi
 from gi.events import GLibEventLoopPolicy
 
 from . import _config as CFG
+from .joystick import read_joystick
 from .lib import APP_ID, APP_PATH
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 gi.require_version("Vte", "3.91")
 
-from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Vte  # noqa: E402
+from gi.repository import (  # noqa: E402
+    Adw,
+    Gdk,
+    Gio,
+    GLib,
+    GObject,
+    Gtk,
+    PangoCairo,
+    Vte,
+)
 
 # Wait until VTE resolves
 GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
@@ -27,6 +38,17 @@ GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
 resource_blob = files("jankportal").joinpath("jankportal.gresource").read_bytes()
 resource = Gio.Resource.new_from_data(GLib.Bytes.new(resource_blob))
 Gio.resources_register(resource)
+
+# Load in button symbol font
+font_blob = Gio.resources_lookup_data(
+    f"{APP_PATH}/font/promptfont.ttf", Gio.ResourceLookupFlags.NONE
+).get_data()
+
+if font_blob:
+    with tempfile.NamedTemporaryFile(suffix=".ttf") as temp:
+        temp.write(font_blob)  # you apparently can't just give Pango a bytestream
+        font_map = PangoCairo.font_map_get_default()
+        font_map.add_font_file(temp.name)
 
 # Need resources loaded first
 from .ostree.view import OSTreeView  # noqa: E402
@@ -213,6 +235,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
             )
         )
         self.stack.add_titled(child=placeholder, name="ostree", title="Deployments")
+        self._read_joystick = asyncio.create_task(read_joystick(self))
         await self.ostree_view.initialize()
 
 

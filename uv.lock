@@ -118,6 +118,12 @@ wheels = [
 ]
 
 [[package]]
+name = "evdev"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2e/07/eb30593524303d1367f0dc00c1c66582c994dba412a47751e34bad9fa29b/evdev-2.0.0.tar.gz", hash = "sha256:442fb3f4c8dfc9e61e901133c356220c02d663eca8f34722e0cecdd637eba504", size = 33766, upload-time = "2026-08-23T10:31:26.835Z" }
+
+[[package]]
 name = "hatchling"
 version = "1.32.4"
 source = { registry = "https://pypi.org/simple" }
@@ -146,6 +152,7 @@ wheels = [
 name = "jankportal"
 source = { editable = "." }
 dependencies = [
+    { name = "evdev" },
     { name = "markdown" },
     { name = "pyyaml" },
     { name = "requests" },
@@ -160,6 +167,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "evdev", specifier = ">=2.0.0" },
     { name = "markdown", specifier = ">=3.10.3" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.33.1" },
