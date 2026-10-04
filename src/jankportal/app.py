@@ -32,6 +32,19 @@ from .ostree.view import OSTreeView  # noqa: E402
 from .yafti.view import YaftiView  # noqa: E402
 
 
+def find_child_by_name(parent: Gtk.Widget, name: str) -> Gtk.Widget | None:
+    """Loop through children until we hit one with a matching name"""
+    if parent.props.name == name:
+        return parent
+    child = parent.get_first_child()
+    while child is not None:
+        result = find_child_by_name(child, name)
+        if result is not None:
+            return result
+        child = child.get_next_sibling()
+    return None
+
+
 @Gtk.Template(resource_path=f"{APP_PATH}/ui/app.ui")
 class JankPortalWindow(Adw.ApplicationWindow):
     """Main window for Jank Portal"""
@@ -176,11 +189,21 @@ class JankPortalWindow(Adw.ApplicationWindow):
         dialog.set_close_response("ok")
         dialog.choose(self, cancellable=None, callback=on_response)
 
-    async def append_components(self) -> None:
-        """Add ViewStackPages to main window"""
+    def toast(self, message: str) -> None:
+        """Display message in toast"""
+
+        self.overlay.add_toast(Adw.Toast.new(message))
+
+    async def initialize(self) -> None:
+        """Add ViewStackPages to main window and connect joystick input"""
 
         self.yafti_view = YaftiView(self)
         self.stack.props.visible_child_name = "welcome"
+        parent = self.stack.get_child_by_name("welcome")
+        if parent is not None:
+            starter_focus = find_child_by_name(parent, "bazzite-documentation")
+            if starter_focus is not None:
+                starter_focus.grab_focus()
         self.ostree_view = OSTreeView(self)
         placeholder = Adw.Bin(
             child=Adw.StatusPage(
@@ -198,6 +221,10 @@ class JankPortalApp(Adw.Application):
     def __init__(self):
         super().__init__(application_id=APP_ID)
 
+    def _async_cleanup(self, task: asyncio.Task[None]):
+        """Drop reference to async init task"""
+        del self._async_init
+
     def do_activate(self):
         """Load CSS and main window, show main window"""
 
@@ -211,7 +238,8 @@ class JankPortalApp(Adw.Application):
                 priority=Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
             )
         win = JankPortalWindow(application=self)
-        asyncio.create_task(win.append_components())
+        self._async_init = asyncio.create_task(win.initialize())
+        self._async_init.add_done_callback(self._async_cleanup)
         win.present()
 
 
