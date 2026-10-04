@@ -12,7 +12,7 @@ BuildRequires:  python3-devel %{pkg_build_requires}
 Requires:       %{pkg_requires}
 
 %global _description %{expand:
-A simple GUI to run Bazzite setup scripts/utilities and manage system deployments.}
+Long description goes here and should probably be extracted from pyproject.toml.}
 
 %description %_description
 

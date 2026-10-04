@@ -44,7 +44,7 @@ font_blob = Gio.resources_lookup_data(
     f"{APP_PATH}/font/promptfont.ttf", Gio.ResourceLookupFlags.NONE
 ).get_data()
 
-if font_blob:
+if font_blob:  # I wonder if i should invert this and blow up if it fails?
     with tempfile.NamedTemporaryFile(suffix=".ttf") as temp:
         temp.write(font_blob)  # you apparently can't just give Pango a bytestream
         font_map = PangoCairo.font_map_get_default()
