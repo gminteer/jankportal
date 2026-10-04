@@ -104,7 +104,7 @@ class Direction:
     def get_analog_direction(self, value: int, center: int, range: int):
         """Convert raw axis information to a [-1, 0, 1] value"""
 
-        normalized = (value - self.info.x.center) / self.info.x.range
+        normalized = (value - center) / range
         if normalized < -self.info.deadzone:
             return -1
         if normalized > self.info.deadzone:
@@ -151,6 +151,8 @@ def find_joystick():
 
 
 async def read_joystick(window: JankPortalWindow):
+    """read evdev events from a joystick and duct tape them to GTK4"""
+
     def move(direction: Horizontal | Vertical):
         if not window.props.focus_visible:
             window.props.focus_visible = True
@@ -182,6 +184,7 @@ async def read_joystick(window: JankPortalWindow):
                 case ecodes.BTN_EAST:
                     # east button = escape
                     # or at least it would be if i knew how
+                    pass
                 case ecodes.BTN_NORTH:
                     # north button = focus search entry
                     window.search.grab_focus()
