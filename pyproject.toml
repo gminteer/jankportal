@@ -28,6 +28,9 @@ jankportal = "jankportal.app:main"
 requires = ["hatchling", "uv-dynamic-versioning"]
 build-backend = "hatchling.build"
 
+[tool.gtk]
+app_id = "io.github.gminteer.jankportal"
+
 [tool.pyright]
 reportMissingModuleSource = false
 reportUnusedImport = false

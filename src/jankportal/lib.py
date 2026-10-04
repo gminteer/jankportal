@@ -1,5 +1,7 @@
 import gi
 
+from ._config import APP_ID as APP_ID, APP_PATH as APP_PATH  # noqa: PLC0414
+
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk  # noqa: E402
 

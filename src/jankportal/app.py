@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 import gi
 from gi.events import GLibEventLoopPolicy
 
-from .lib import APP_PATH
+from .lib import APP_ID, APP_PATH
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -23,7 +23,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, Vte  # noqa: E402
 GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
 
 # Load GTK resources
-resource_blob = files("jankportal").joinpath("resources.gresource").read_bytes()
+resource_blob = files("jankportal").joinpath("jankportal.gresource").read_bytes()
 resource = Gio.Resource.new_from_data(GLib.Bytes.new(resource_blob))
 Gio.resources_register(resource)
 
@@ -32,7 +32,7 @@ from .ostree.view import OSTreeView  # noqa: E402
 from .yafti.view import YaftiView  # noqa: E402
 
 
-@Gtk.Template(resource_path=f"{APP_PATH}/app.ui")
+@Gtk.Template(resource_path=f"{APP_PATH}/ui/app.ui")
 class JankPortalWindow(Adw.ApplicationWindow):
     """Main window for Jank Portal"""
 
@@ -196,16 +196,13 @@ class JankPortalApp(Adw.Application):
     """App class for Jank Portal"""
 
     def __init__(self):
-        super().__init__(
-            application_id="io.github.gminteer.jankportal",
-            flags=Gio.ApplicationFlags.DEFAULT_FLAGS,
-        )
+        super().__init__(application_id=APP_ID)
 
     def do_activate(self):
         """Load CSS and main window, show main window"""
 
         css = Gtk.CssProvider()
-        css.load_from_resource(f"{APP_PATH}/app.css")
+        css.load_from_resource(f"{APP_PATH}/css/app.css")
         display = Gdk.Display.get_default()
         if display:
             Gtk.StyleContext.add_provider_for_display(
