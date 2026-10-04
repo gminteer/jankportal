@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 import gi
 from gi.events import GLibEventLoopPolicy
 
+from . import _config as CFG
 from .lib import APP_ID, APP_PATH
 
 gi.require_version("Gtk", "4.0")
@@ -86,12 +87,12 @@ class JankPortalWindow(Adw.ApplicationWindow):
     def on_about_clicked(self, button: Gtk.Button):
         about = Adw.AboutDialog(
             application_name="Jank Portal",
-            developer_name="h3lmut",
-            comments="yafti-gtk, re-imagined by a madman",
+            developer_name=CFG.AUTHOR,
+            comments=CFG.DESCRIPTION,
             version=version("jankportal"),
-            website="https://github.com/gminteer/jankportal#README",
-            issue_url="https://github.com/gminteer/jankportal/issues",
-            copyright="© 2026 h3lmut",
+            website=CFG.HOMEPAGE,
+            issue_url=CFG.BUG_TRACKER,
+            copyright=f"© 2026 {CFG.AUTHOR}",
             license_type=Gtk.License.GPL_3_0,
         )
         about.present(self)

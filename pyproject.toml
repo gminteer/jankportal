@@ -6,13 +6,18 @@ readme = "README.md"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.14"
 authors = [
-    { name = "gminteer" }
+    { name = "h3lmut" }
 ]
 dependencies = [
     "markdown>=3.10.3",
     "pyyaml>=6.0.3",
     "requests>=2.33.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/gminteer/jankportal/#README"
+Repository = "https://github.com/gminteer/jankportal.git"
+"Bug Tracker" = "https://github.com/gminteer/jankportal/issues"
 
 [dependency-groups]
 dev = [
