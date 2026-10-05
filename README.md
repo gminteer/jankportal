@@ -20,6 +20,8 @@ A Clone of [Bazzite Portal](https://github.com/xXJSONDeruloXx/yafti-gtk), also u
 
 - Uses GTK Blueprints and is much more webslop brained than `yafti-gtk`'s bash script brained.
 
+- Uses Adwaita and makes a reasonable attempt to follow the GNOME user interface guidelines
+
 ## Installation
 
 At some point I'll start actually putting up releases, but until then:
@@ -44,7 +46,7 @@ At some point I'll start actually putting up releases, but until then:
 
 ## Authors
 
-Just me so far.
+Just me ("h3lmut" on the Bazzite discord) so far
 
 ## License
 
