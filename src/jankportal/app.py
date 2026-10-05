@@ -120,10 +120,12 @@ class JankPortalWindow(Adw.ApplicationWindow):
         about.present(self)
 
     def on_child_exited(self, terminal: Vte.Terminal, status: int):
-        """Countdown from DELAY, then close VTE sheet and unwire bottom sheet opener"""
+        """Countdown from DELAY, then close VTE and unwire the VTE opener"""
 
+        DELAY = 3
         if self._vte_done_callback is not None:
             self._vte_done_callback()  # type: ignore
+            self._vte_done_callback = None
 
         self._vte_is_running = False
         title_prefix = "[Exited]" if status == 0 else f"[Exited with code {status}]"
@@ -131,7 +133,6 @@ class JankPortalWindow(Adw.ApplicationWindow):
             self.command_label.props.label = f"{title_prefix}, unpin to close"
             return
 
-        DELAY = 3
         self.command_label.props.label = f"{title_prefix}, hiding in {DELAY}s…"
         countdown = DELAY
 
@@ -166,7 +167,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
         self.vte.connect("contents-changed", self.on_contents_changed)
 
     def on_contents_changed(self, terminal: Vte.Terminal):
-        """Show terminal widget if script has output anything"""
+        """Show VTE if script has output anything"""
 
         self.bottom_sheet.props.open = True
         self.vte.grab_focus()

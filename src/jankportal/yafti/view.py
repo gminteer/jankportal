@@ -55,7 +55,7 @@ def create_emblem(type: str, description: str = ""):
             icon.add_css_class("warning")
             icon.props.tooltip_text = "No status provided"
         case "NOT_A_DECK":
-            icon = Gtk.Image.new_from_icon_name("dialog-information")
+            icon = Gtk.Image.new_from_icon_name("dialog-information-symbolic")
             icon.add_css_class("warning")
             icon.props.tooltip_text = "For handhelds and HTPCs only"
         case "NOT_FOUND":
@@ -78,6 +78,7 @@ def on_status_changed(
     emblem_box: Gtk.Box,
     action_box: Gtk.Box | None = None,
 ):
+    """Update action emblem on status change"""
     while (child := emblem_box.get_first_child()) is not None:
         emblem_box.remove(child)
     if action.status.isupper():
@@ -137,8 +138,8 @@ def create_dropdown_row(
         ),
         model=action.options,
         name=action.name,
+        css_classes=["flat-dropdown"],
     )
-    drop_down.add_css_class("flat-dropdown")
     align_drop_down(drop_down)
     emblem_box = Gtk.Box(width_request=16, name="emblem_box")
     row.add_suffix(emblem_box)
@@ -162,8 +163,7 @@ def create_button_group_row(
     row = Adw.ActionRow(
         title=action.title, subtitle=action.description, name=action.name
     )
-    action_box = Gtk.Box()
-    action_box.add_css_class("action-button-group")
+    action_box = Gtk.Box(css_classes=["action-button-group"])
     emblem_box = Gtk.Box(width_request=16)
     emblem = create_emblem(action.status)
     action.connect("notify::status", on_status_changed, emblem_box, action_box)
@@ -209,21 +209,19 @@ def create_row(
 ):
     """Create row widget for an action"""
 
-    option_count = action.options.get_n_items()
-
-    if option_count > 3:
-        if action.has_status_script:
+    match len(action.options):
+        case val if val > 3 and action.has_status_script:
             row = create_dropdown_row(action, callback)
-        else:
+        case val if val > 3:
             row = create_expander_row(action, callback)
-    elif option_count > 0:
-        row = create_button_group_row(action, callback)
-    else:
-        row = Adw.ActionRow(
-            title=action.title, subtitle=action.description, name=action.name
-        )
-        row.props.activatable = True
-        row.connect("activated", callback, action.title, action.script)
+        case val if val > 0:
+            row = create_button_group_row(action, callback)
+        case _:
+            row = Adw.ActionRow(
+                title=action.title, subtitle=action.description, name=action.name
+            )
+            row.props.activatable = True
+            row.connect("activated", callback, action.title, action.script)
 
     return row
 

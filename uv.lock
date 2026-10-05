@@ -154,6 +154,7 @@ source = { editable = "." }
 dependencies = [
     { name = "evdev" },
     { name = "markdown" },
+    { name = "pyudev" },
     { name = "pyyaml" },
     { name = "requests" },
 ]
@@ -167,8 +168,9 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "evdev", specifier = ">=2.0.0" },
+    { name = "evdev", specifier = ">=1.9.3" },
     { name = "markdown", specifier = ">=3.10.3" },
+    { name = "pyudev", specifier = ">=0.24.5" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.33.1" },
 ]
@@ -293,6 +295,15 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/8c/be/bf49399ad2e788121f595903a56447d4b778d67acbb01ecfc1c6d5cf91f6/pygobject_stubs-2.17.0.tar.gz", hash = "sha256:66884d26974dd7fb99a8bc5972b5bdeb4b7399ecc7ac53913a6cafa6ab21491f", size = 1010510, upload-time = "2026-03-20T17:08:59.656Z" }
+
+[[package]]
+name = "pyudev"
+version = "0.24.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/45/770eda636216c62be4a06af01c7235923ca0580d72fd3e3178fb01b3ae01/pyudev-0.24.5.tar.gz", hash = "sha256:4e7faaec419b81a902d057568101819f448972c0cf448bb9c22203e4fc6a8eb9", size = 55343, upload-time = "2026-09-28T16:36:14.53Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5f/56/0baea14a1c772ce3df2c5d3a57802b31bcdee555f11dc8d18d23a927d14f/pyudev-0.24.5-py3-none-any.whl", hash = "sha256:a9c62d04a83472fb05ad5e014ef85933e5cf2fef193caf8b77bb7a9e8ded4812", size = 60467, upload-time = "2026-09-28T16:36:13.328Z" },
+]
 
 [[package]]
 name = "pyyaml"
