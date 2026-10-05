@@ -10,9 +10,9 @@ OUTPUT_DIR = Path("src/jankportal")
 
 
 class CustomBuildHook(BuildHookInterface[Any]):
-    """We do 2 things: dump pyproject metadata to a _config.py jankportal can injest,
-    and compile GTK blueprints into .ui files that get mushed into a .gresource,
-    alongside fonts and css files and images and shit"""
+    """Dump pyproject metadata to a _config.py jankportal can injest, and
+    compile GTK blueprints into .ui files that get packed into a .gresource,
+    alongside other ui resources"""
 
     PLUGIN_NAME = "jankhook"
 
@@ -57,7 +57,7 @@ class CustomBuildHook(BuildHookInterface[Any]):
         root = ET.Element("gresources")
         gresource_el = ET.SubElement(root, "gresource", prefix=app_path)
 
-        files_to_include = [
+        resources = [
             *RESOURCE_DIR.rglob("*.ui"),
             *RESOURCE_DIR.rglob("*.css"),
             *RESOURCE_DIR.rglob("*.svg"),
@@ -65,7 +65,7 @@ class CustomBuildHook(BuildHookInterface[Any]):
         ]
 
         SKIP_XML_PREPROCESS = [".css", ".ttf"]
-        for file_path in files_to_include:
+        for file_path in resources:
             relative_path = file_path.relative_to(RESOURCE_DIR)
             attrib = (
                 {"preprocess": "xml-stripblanks"}
@@ -92,7 +92,7 @@ class CustomBuildHook(BuildHookInterface[Any]):
             check=True,
         )
 
-        # trash (no longer needed) .ui files
+        # trash temporary files
+        gresource_path.unlink(missing_ok=True)
         for ui_file in compiled_ui_files:
             ui_file.unlink(missing_ok=True)
-            gresource_path.unlink(missing_ok=True)
