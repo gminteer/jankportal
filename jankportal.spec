@@ -31,7 +31,7 @@ Requires:       %{pkg_requires}
 %install
 %pyproject_install
 # Automatically extracted from wheel
-%pyproject_save_files -l jankportal
+%pyproject_save_files -l %{name}
 
 
 %check
