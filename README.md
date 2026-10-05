@@ -2,6 +2,24 @@
 
 A Clone of [Bazzite Portal](https://github.com/xXJSONDeruloXx/yafti-gtk), also using Python and GTK, but not directly based off of it. The project started mostly as an excuse to get back into Python, and learn a GUI toolkit that isn't Tkinter along the way. It's mostly functional, and incorporates a partially implemented wrapper around `rpm-ostree` and `bazzite-rollback-helper` in the deployments tab, but it's definitely not ready for prime time yet.
 
+## Things it does that Portal don't
+
+- A simple wrapper around wrangling deployments, that lets you pin/unpin `rpm-ostree` images, rebase to a different image/tag (with constraints, it won't let you jump to a different desktop or add/remove the nvidia driver currently), and/or rebase to a specific version you currently have deployed.
+
+- Joystick input support. Currently fairly janky: the joystick needs to have been plugged in at program launch, and it doesn't handle disconnect/connect events at all, and there's no UI hints on the controller bindings yet:
+  - Left stick/dpad = move selected widget
+  - Left bumper is shift-tab, right bumper is tab
+  - South button selects
+  - East button cancels
+  - North button selects search entry (in the hopes that will trigger on-screen keyboard)
+  - Left/right triggers swap to previous/next page
+  - Right stick Y-axis scrolls
+  - Start button opens about menu
+
+- Embeds a terminal widget instead of running an external terminal
+
+- Uses GTK Blueprints and is much more webslop brained than `yafti-gtk`'s bash script brained.
+
 ## Installation
 
 At some point I'll start actually putting up releases, but until then:
@@ -12,38 +30,17 @@ At some point I'll start actually putting up releases, but until then:
 4. Use `rpm-ostree` to install the resulting RPM, and reboot.
 5. Get annoyed that I haven't bundled an .desktop file yet so you have to run `jankportal` in a terminal or make your own launch menu entry for it.
 
-### External Dependencies
-
-#### Runtime
-
-99% of Jank Portal's runtime dependencies should be present out of the box on Bazzite (I'm not sure how applicable this tool is to any other distro to be honest):
-
-- [PyGObject](https://pygobject.gnome.org/)
-- [ostree](https://ostreedev.github.io/ostree/man/ostree.html), [rpm-ostree](https://coreos.github.io/rpm-ostree/), and [skopeo](https://github.com/podman-container-tools/skopeo) commands in $PATH
-- A [yafti.yml](file:///usr/share/yafti/yafti.yml) file in `/usr/share/yafti`
-
-The only runtime dependency that'll need to be manually installed (and I suspect it's there on -gnome images) is the [GNOME VTE library](https://gitlab.gnome.org/GNOME/vte). I've just got it layered with `rpm-ostree`, but I know that's bad manners in Bazzite-land and I suspect there's a better way to do it, but haven't looked into that too far yet.
-
-#### Build
-
-- [uv](https://docs.astral.sh/uv/)
-- [hatchling](https://hatch.pypa.io/latest/)
-- [blueprint-compiler](https://gitlab.gnome.org/GNOME/blueprint-compiler) (Fedora package has the same name)
-- [glib-compile-resources](https://gnome.pages.gitlab.gnome.org/gtkmm-documentation/sec-gio-resource.html) (part of the `glib2-devel` Fedora package)
-
-Installing `blueprint-compiler` and `glib2-devel` in a Fedora distrobox and running `distrobox-export` works as far as I can tell (you may want/need to install `vte291-gtk4-devel` and `webkitgtk6.0-devel` in the distrobox to make blueprint-compiler happy). `uv` can be installed with brew.
-
 ## Built With
 
-- [uv](https://docs.astral.sh/uv/) - Python package/project manager
-- [hatchling](https://hatch.pypa.io/latest/) - Extensible Python build back-end
-- [PyGObject](https://pygobject.gnome.org/) - Python bindings for [GTK4](https://docs.gtk.org/gtk4/overview.html) and [Libadwaita](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/)
-- [Blueprint](https://gnome.pages.gitlab.gnome.org/blueprint-compiler/) - Markup for GTK4 interfaces
-- [GNOME VTE library](https://gitlab.gnome.org/GNOME/vte) - Virtual terminal component
-- [WebKitGTK](https://webkitgtk.org/) - WebKit component
+- [uv](https://docs.astral.sh/uv/) - Everyone loves it and it seems like it's pretty good
+- [hatchling](https://hatch.pypa.io/latest/) - Because I need a build hook and `uv` doesn't have them
+- [PyGObject](https://pygobject.gnome.org/) - Python bindings for [GTK4](https://docs.gtk.org/gtk4/overview.html) and [Libadwaita](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/), which are surprisingly decent
+- [Blueprint](https://gnome.pages.gitlab.gnome.org/blueprint-compiler/) - Markup for GTK4 interfaces, I just wish the blueprint guy went further and I could tag strings in python and get blobs of GTK widgets
+- [GNOME VTE library](https://gitlab.gnome.org/GNOME/vte) - Virtual terminal component, because embedding a terminal feels a lot slicker than running `$DEFAULT_TERMINAL`
+- [WebKitGTK](https://webkitgtk.org/) - WebKit component, because the best way to show markdown in a GTK app is converting markdown to HTML and embedding a Webkit WebView?
 - [Python-Markdown](https://python-markdown.github.io/) - Convert markdown to HTML
-- [github-markdown-css](https://cdnjs.com/libraries/github-markdown-css) - CSS library for markdown converted to HTML
-- [PyYAML](https://pyyaml.org/) - Python YAML framework
+- [github-markdown-css](https://cdnjs.com/libraries/github-markdown-css) - Make markdown look like it does on GitHub
+- [PyYAML](https://pyyaml.org/) - Read YAML files
 
 ## Authors
 
