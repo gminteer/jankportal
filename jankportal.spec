@@ -1,20 +1,19 @@
-Name:           jankportal
+Name:           %{pkg_name}
 Version:        %{pkg_version}
 Release:        %autorelease
 Summary:        %{pkg_summary}
 
-License:        GPL-3.0-or-later
-URL:            https://github.com/gminteer/jankportal
+License:        %{pkg_license}
+URL:            %{pkg_url}
 Source:         %{name}-%{version}.tar.gz
 
 BuildArch:      noarch
 BuildRequires:  python3-devel %{pkg_build_requires}
 Requires:       %{pkg_requires}
 
-%global _description %{expand:
-Long description goes here and should probably be extracted from pyproject.toml.}
 
-%description %_description
+%description
+%{pkg_description}
 
 
 %prep
@@ -40,7 +39,7 @@ Long description goes here and should probably be extracted from pyproject.toml.
 
 
 %files -n %{name} -f %{pyproject_files}
-%{_bindir}/jankportal
+%{_bindir}/%{name}
 
 
 %changelog

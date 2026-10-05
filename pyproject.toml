@@ -11,6 +11,7 @@ authors = [
 dependencies = [
     "evdev>=1.9.3",
     "markdown>=3.10.3",
+    #"pyudev>=0.24.4",
     "pyyaml>=6.0.3",
     "requests>=2.33.1",
 ]
@@ -36,6 +37,9 @@ build-backend = "hatchling.build"
 
 [tool.gtk]
 app_id = "io.github.gminteer.jankportal"
+
+[tool.rpm]
+description = "This is a clone of Bazzite Portal with some additional features"
 
 [tool.pyright]
 reportMissingModuleSource = false
