@@ -274,7 +274,6 @@ class OSTreeView:
         self.page.tag.connect("notify::selected-item", self.on_tag_selected)
         placeholder = cast("Adw.Bin", self.window.stack.get_child_by_name("ostree"))
         placeholder.props.child = self.page
-        print("switcheroo")
 
     @property
     def selected_image(self):
