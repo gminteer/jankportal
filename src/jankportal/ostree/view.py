@@ -15,7 +15,7 @@ from .templates import Changelog, DeploymentActions, OverlayList, Page, Row
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from jankportal.app import JankPortalWindow
+    from jankportal.app import JankWindow
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -241,7 +241,7 @@ async def create_page(
 
 
 class OSTreeView:
-    def __init__(self, window: JankPortalWindow):
+    def __init__(self, window: JankWindow):
         """Builds ViewStackPage based on rpm-ostree status, appends to window.stack"""
 
         self.window = window

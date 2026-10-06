@@ -36,7 +36,9 @@ requires = ["hatchling", "uv-dynamic-versioning"]
 build-backend = "hatchling.build"
 
 [tool.gtk]
-app_id = "io.github.gminteer.jankportal"
+app-id = "io.github.gminteer.jankportal"
+app-title = "Jank Portal"
+license = "GPL_3_0"
 
 [tool.rpm]
 description = "This is a clone of Bazzite Portal with some additional features"

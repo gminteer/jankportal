@@ -13,7 +13,7 @@ from .models import Action, Option, Page
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from jankportal.app import JankPortalWindow
+    from jankportal.app import JankWindow
 
     from .types import Root, TitledPage
 
@@ -279,7 +279,7 @@ def filter(item: Action, search_text: str):
 
 
 class YaftiView:
-    def __init__(self, window: JankPortalWindow):
+    def __init__(self, window: JankWindow):
         """Builds ViewStackPages based on YAFTI YML, appends to window.stack widget"""
 
         self.window = window

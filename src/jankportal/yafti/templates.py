@@ -1,6 +1,6 @@
 import gi
 
-from jankportal.lib import APP_PATH
+from jankportal._config import APP_PATH
 
 gi.require_version("Gtk", "4.0")
 

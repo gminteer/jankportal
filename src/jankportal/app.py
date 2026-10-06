@@ -14,7 +14,6 @@ from gi.events import GLibEventLoopPolicy
 
 from . import _config as CFG
 from .joystick import read_joystick
-from .lib import APP_ID, APP_PATH
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -35,15 +34,14 @@ from gi.repository import (  # noqa: E402
 GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
 
 # Load GTK resources
-resource_blob = files("jankportal").joinpath("jankportal.gresource").read_bytes()
+resource_blob = files(CFG.APP_NAME).joinpath(f"{CFG.APP_NAME}.gresource").read_bytes()
 resource = Gio.Resource.new_from_data(GLib.Bytes.new(resource_blob))
 Gio.resources_register(resource)
 
 # Load in button symbol font
 font_blob = Gio.resources_lookup_data(
-    f"{APP_PATH}/font/promptfont.ttf", Gio.ResourceLookupFlags.NONE
+    f"{CFG.APP_PATH}/font/promptfont.ttf", Gio.ResourceLookupFlags.NONE
 ).get_data()
-
 if font_blob:  # I wonder if i should invert this and blow up if it fails?
     with tempfile.NamedTemporaryFile(suffix=".ttf") as temp:
         temp.write(font_blob)  # you apparently can't just give Pango a bytestream
@@ -68,11 +66,11 @@ def find_child_by_name(parent: Gtk.Widget, name: str) -> Gtk.Widget | None:
     return None
 
 
-@Gtk.Template(resource_path=f"{APP_PATH}/ui/app.ui")
-class JankPortalWindow(Adw.ApplicationWindow):
-    """Main window for Jank Portal"""
+@Gtk.Template(resource_path=f"{CFG.APP_PATH}/ui/app.ui")
+class JankWindow(Adw.ApplicationWindow):
+    """Main Window"""
 
-    __gtype_name__ = "JankPortalWindow"
+    __gtype_name__ = "JankWindow"
     vte: Vte.Terminal = Gtk.Template.Child()
     bottom_sheet: Adw.BottomSheet = Gtk.Template.Child()
     stack: Adw.ViewStack = Gtk.Template.Child()
@@ -84,6 +82,7 @@ class JankPortalWindow(Adw.ApplicationWindow):
 
     def __init__(self, application: Adw.Application):
         super().__init__(application=application)
+        self.props.title = CFG.APP_TITLE
         self.vte.connect("child-exited", self.on_child_exited)
         self.search.set_key_capture_widget(self)
         self._vte_is_running = False
@@ -108,14 +107,14 @@ class JankPortalWindow(Adw.ApplicationWindow):
     @Gtk.Template.Callback()
     def on_about_clicked(self, button: Gtk.Button):
         about = Adw.AboutDialog(
-            application_name="Jank Portal",
+            application_name=CFG.APP_TITLE,
             developer_name=CFG.AUTHOR,
             comments=CFG.DESCRIPTION,
-            version=version("jankportal"),
+            version=version(CFG.APP_NAME),
             website=CFG.HOMEPAGE,
             issue_url=CFG.BUG_TRACKER,
-            copyright=f"© 2026 {CFG.AUTHOR}",
-            license_type=Gtk.License.GPL_3_0,
+            copyright=f"© {CFG.AUTHOR}",
+            license_type=getattr(Gtk.License, CFG.GTK_LICENSE),
         )
         about.present(self)
 
@@ -240,11 +239,11 @@ class JankPortalWindow(Adw.ApplicationWindow):
         await self.ostree_view.initialize()
 
 
-class JankPortalApp(Adw.Application):
-    """App class for Jank Portal"""
+class JankApplication(Adw.Application):
+    """Application"""
 
     def __init__(self):
-        super().__init__(application_id=APP_ID)
+        super().__init__(application_id=CFG.APP_ID)
 
     def _async_cleanup(self, task: asyncio.Task[None]):
         """Drop reference to async init task"""
@@ -254,7 +253,7 @@ class JankPortalApp(Adw.Application):
         """Load CSS and main window, show main window"""
 
         css = Gtk.CssProvider()
-        css.load_from_resource(f"{APP_PATH}/css/app.css")
+        css.load_from_resource(f"{CFG.APP_PATH}/css/app.css")
         display = Gdk.Display.get_default()
         if display:
             Gtk.StyleContext.add_provider_for_display(
@@ -262,14 +261,14 @@ class JankPortalApp(Adw.Application):
                 provider=css,
                 priority=Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
             )
-        win = JankPortalWindow(application=self)
+        win = JankWindow(application=self)
         self._async_init = asyncio.create_task(win.initialize())
         self._async_init.add_done_callback(self._async_cleanup)
         win.present()
 
 
 def main():
-    app = JankPortalApp()
+    app = JankApplication()
     policy = GLibEventLoopPolicy()
     asyncio.set_event_loop_policy(policy)  # type: ignore
     return app.run(sys.argv)

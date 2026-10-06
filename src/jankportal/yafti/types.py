@@ -1,6 +1,7 @@
-from typing import NotRequired, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
-from . import templates
+if TYPE_CHECKING:
+    from . import templates
 
 
 class Option(TypedDict):
