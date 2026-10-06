@@ -13,7 +13,7 @@ import gi
 from gi.events import GLibEventLoopPolicy
 
 from . import _config as CFG
-from .joystick import read_joystick
+from .joystick.loop import read_joystick
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
