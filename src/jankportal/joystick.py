@@ -12,7 +12,7 @@ from .lib import DirectionMap, Horizontal, Vertical
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from jankportal.app import JankPortalWindow
+    from jankportal.app import JankWindow
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -21,9 +21,11 @@ from gi.repository import Adw, GLib, Gtk, WebKit  # noqa: E402
 
 BTN_DOWN = 1
 BTN_UP = 0
-REPEAT_RATE = 0.5
-DEADZONE = 0.6
+NAV_DEADZONE = 0.6
+NAV_REPEAT_RATE = 0.5
 SCROLL_STEP = 25
+SCROLL_DEADZONE = 0.1
+SCROLL_REPEAT_RATE = 0.02
 
 
 class AxisInfo:
@@ -64,7 +66,7 @@ class Direction:
         axis = self._x if isinstance(direction, Horizontal) else self._y
         while direction == axis:
             self.move(direction)
-            await asyncio.sleep(REPEAT_RATE)
+            await asyncio.sleep(NAV_REPEAT_RATE)
 
     @property
     def x(self):
@@ -163,7 +165,7 @@ async def repeat_scroll(scrollable: Gtk.ScrolledWindow):
         new_amount = max(v_adj.props.lower, new_amount)
         new_amount = min(v_adj.props.upper, new_amount)
         v_adj.props.value = new_amount
-        await asyncio.sleep(0.02)
+        await asyncio.sleep(SCROLL_REPEAT_RATE)
 
 
 async def repeat_scroll_webview(webview: WebKit.WebView):
@@ -179,10 +181,10 @@ async def repeat_scroll_webview(webview: WebKit.WebView):
             length=-1,
             callback=callback,
         )
-        await asyncio.sleep(0.02)
+        await asyncio.sleep(SCROLL_REPEAT_RATE)
 
 
-async def read_joystick(window: JankPortalWindow):
+async def read_joystick(window: JankWindow):
     """read evdev events from a joystick and duct tape them to GTK4"""
 
     global scroll_amount
@@ -190,7 +192,7 @@ async def read_joystick(window: JankPortalWindow):
     def move(direction: Horizontal | Vertical):
         if not window.props.focus_visible:
             window.props.focus_visible = True
-        window.child_focus(DirectionMap[direction])
+        window.emit("move-focus", DirectionMap[direction])
 
     device = find_joystick()
     if device is None:
@@ -200,12 +202,12 @@ async def read_joystick(window: JankPortalWindow):
     direction_info = AnalogInfo(
         x=AxisInfo(min=dev_cap[ecodes.ABS_X].min, max=dev_cap[ecodes.ABS_X].max),  # type: ignore
         y=AxisInfo(min=dev_cap[ecodes.ABS_Y].min, max=dev_cap[ecodes.ABS_Y].max),  # type: ignore
-        deadzone=DEADZONE,
+        deadzone=NAV_DEADZONE,
     )
     scroll = AnalogInfo(
         x=AxisInfo(min=dev_cap[ecodes.ABS_RX].min, max=dev_cap[ecodes.ABS_RX].max),  # type: ignore
         y=AxisInfo(min=dev_cap[ecodes.ABS_RY].min, max=dev_cap[ecodes.ABS_RY].max),  # type: ignore
-        deadzone=0.05,
+        deadzone=SCROLL_DEADZONE,
     )
     direction = Direction(direction_info, move)
     scrolling = None
@@ -213,6 +215,7 @@ async def read_joystick(window: JankPortalWindow):
     async for event in device.async_read_loop():  # type: ignore
         event = cast("evdev.InputEvent", event)
         if event.type == ecodes.EV_ABS:
+            # analog inputs
             if event.code in [
                 ecodes.ABS_X,
                 ecodes.ABS_Y,
@@ -233,6 +236,7 @@ async def read_joystick(window: JankPortalWindow):
                     if isinstance(scrolling, asyncio.Task):
                         scrolling.cancel()
                         scrolling = None
+                    continue
 
                 if isinstance(focus, WebKit.WebView) and not scrolling:
                     scrolling = asyncio.create_task(repeat_scroll_webview(focus))
@@ -242,10 +246,15 @@ async def read_joystick(window: JankPortalWindow):
                     scrolling = asyncio.create_task(repeat_scroll(scrollable))
 
         elif event.type == ecodes.EV_KEY and event.value == BTN_DOWN:
+            # button presses
             match event.code:
                 case ecodes.BTN_SOUTH:
                     # south button = enter
                     if not (focus := window.get_focus()):
+                        continue
+                    expander = focus.get_ancestor(Adw.ExpanderRow)
+                    if expander:
+                        expander.props.expanded = True
                         continue
                     focus.activate()
 
@@ -261,6 +270,20 @@ async def read_joystick(window: JankPortalWindow):
                     dialog = focus.get_ancestor(Adw.Dialog)
                     if dialog:
                         dialog.close()
+                        continue
+                    expander = focus.get_ancestor(Adw.ExpanderRow)
+                    if expander:
+                        expander.props.expanded = False
+                        continue
+                    dropdown = focus.get_ancestor(Gtk.DropDown)
+                    if dropdown:
+                        child = dropdown.get_first_child()
+                        while child is not None:
+                            if isinstance(child, Gtk.Popover):
+                                child.popdown()
+                                break
+                            child = child.get_next_sibling()
+                        continue
 
                 case ecodes.BTN_NORTH:
                     # north button = focus search entry

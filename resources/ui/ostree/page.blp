@@ -22,6 +22,7 @@ template $OSTreePage: ScrolledWindow {
             Adw.ActionRow {
                 title: _("Image");
                 activatable-widget: image;
+                focusable: false;
 
                 [suffix]
                 DropDown image {
@@ -32,6 +33,7 @@ template $OSTreePage: ScrolledWindow {
             Adw.ActionRow {
                 title: _("Tag");
                 activatable-widget: tag;
+                focusable: false;
 
                 [suffix]
                 DropDown tag {

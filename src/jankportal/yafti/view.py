@@ -129,7 +129,9 @@ def create_dropdown_row(
             return
         callback(drop_down, option.label, option.script, option.parent.refresh)
 
-    row = Adw.ActionRow(title=action.title, subtitle=action.description)
+    row = Adw.ActionRow(
+        title=action.title, subtitle=action.description, focusable=False
+    )
     drop_down = Gtk.DropDown(
         expression=Gtk.PropertyExpression.new(
             Option,
@@ -161,7 +163,10 @@ def create_button_group_row(
     callback: Callable[[Gtk.Widget, str, str, Callable[[], None] | None], None],
 ):
     row = Adw.ActionRow(
-        title=action.title, subtitle=action.description, name=action.name
+        title=action.title,
+        subtitle=action.description,
+        name=action.name,
+        focusable=False,
     )
     action_box = Gtk.Box(css_classes=["action-button-group"])
     emblem_box = Gtk.Box(width_request=16)
