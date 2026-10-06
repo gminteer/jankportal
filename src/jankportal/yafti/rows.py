@@ -102,6 +102,7 @@ def create_dropdown_row(
     row = Adw.ActionRow(
         title=action.title, subtitle=action.description, focusable=False
     )
+
     drop_down = Gtk.DropDown(
         expression=Gtk.PropertyExpression.new(
             Option,
@@ -112,7 +113,9 @@ def create_dropdown_row(
         name=action.name,
         css_classes=["flat-dropdown"],
     )
+    drop_down.connect("notify::selected-item", on_row_selected, action.status)
     align_drop_down(drop_down)
+
     emblem_box = Gtk.Box(width_request=16, name="emblem_box")
     row.add_suffix(emblem_box)
     row.add_suffix(drop_down)
@@ -124,7 +127,6 @@ def create_dropdown_row(
         "selected", drop_down, "selected", GObject.BindingFlags.SYNC_CREATE
     )
     row.props.activatable_widget = drop_down
-    drop_down.connect("notify::selected-item", on_row_selected, action.status)
     return row
 
 
