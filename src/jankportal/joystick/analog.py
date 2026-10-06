@@ -93,13 +93,7 @@ class Direction:
         while direction == direction_val:
             if not self._window.props.focus_visible:
                 self._window.props.focus_visible = True
-            can_move = self._window.child_focus(DirectionMap[direction])
-            print(can_move)
-            if not can_move:
-                if direction in [Horizontal.LEFT, Vertical.UP]:
-                    self._window.child_focus(Gtk.DirectionType.TAB_BACKWARD)
-                else:
-                    self._window.child_focus(Gtk.DirectionType.TAB_FORWARD)
+            self._window.emit("move-focus", DirectionMap[direction])
             await asyncio.sleep(self.REPEAT_RATE)
 
     @property
