@@ -38,6 +38,7 @@ class Page(Gtk.ScrolledWindow):
     container: Gtk.Box = Gtk.Template.Child()
     image: Gtk.DropDown = Gtk.Template.Child()
     tag: Gtk.DropDown = Gtk.Template.Child()
+    img_list: Gtk.ListBox = Gtk.Template.Child()
     img_reset: Adw.ButtonRow = Gtk.Template.Child()
     img_rebase: Adw.ButtonRow = Gtk.Template.Child()
 

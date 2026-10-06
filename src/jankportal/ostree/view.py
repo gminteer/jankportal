@@ -194,6 +194,26 @@ async def create_page(
     row_factory: Callable[[Deployment], Adw.ExpanderRow],
     panic: Callable[[str], None],
 ):
+    def on_img_list_keynav_failed(listbox: Gtk.ListBox, direction: Gtk.DirectionType):
+        if direction in [
+            Gtk.DirectionType.DOWN,
+            Gtk.DirectionType.RIGHT,
+            Gtk.DirectionType.TAB_FORWARD,
+        ]:
+            return deploy_list.child_focus(direction)
+        return False
+
+    def on_deploy_list_keynav_failed(
+        listbox: Gtk.ListBox, direction: Gtk.DirectionType
+    ):
+        if direction in [
+            Gtk.DirectionType.UP,
+            Gtk.DirectionType.LEFT,
+            Gtk.DirectionType.TAB_BACKWARD,
+        ]:
+            return page.img_list.child_focus(direction)
+        return False
+
     page = Page()
     align_drop_down(page.image)
     align_drop_down(page.tag)
@@ -236,7 +256,8 @@ async def create_page(
     )
     deploy_list.bind_model(model, row_factory)
     page.container.append(deploy_list)
-
+    page.img_list.connect("keynav-failed", on_img_list_keynav_failed)
+    deploy_list.connect("keynav-failed", on_deploy_list_keynav_failed)
     return page
 
 
