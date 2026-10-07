@@ -57,6 +57,11 @@ def on_status_changed(
             emblem_box.append(emblem)
         if action.status == "NOT_A_DECK" and isinstance(action_box, Gtk.Box):
             action_box.props.visible = False
+            # if we hide the buttons we need to make the row navigable to not make
+            # directional focus shift hit a brick wall
+            row = action_box.get_ancestor(Adw.ActionRow)
+            if row:
+                row.props.focusable = True
 
 
 def create_expander_row(
