@@ -41,7 +41,7 @@ def flatten(value: float):
     return math.floor(value) if value < 0 else math.ceil(value) if value > 0 else 0
 
 
-class AxisInfo:
+class Axis:
     def __init__(self, min: int, max: int, deadzone: float):
         self._min = min
         self._max = max
@@ -51,17 +51,21 @@ class AxisInfo:
 
     @property
     def center(self):
+        """Midpoint of analog axis"""
         if self._center is None:
             self._center = self._min + self._max // 2
         return self._center
 
     @property
     def range(self):
+        """Distance from midpoint to extents"""
         if self._range is None:
             self._range = self._max - self.center
         return self._range
 
     def normalize(self, value: int) -> float:
+        """Convert absolute value to float in range [-1, 1], clamp
+        to zero if value falls within deadzone"""
         normalized = (value - self.center) / self.range
         return (
             normalized
@@ -76,8 +80,8 @@ class Direction:
 
     def __init__(
         self,
-        x_axis: AxisInfo,
-        y_axis: AxisInfo,
+        x_axis: Axis,
+        y_axis: Axis,
         window: JankWindow,
     ):
         self._x_val = Horizontal(0)
@@ -155,7 +159,7 @@ class Scroller:
     DEADZONE = 0.1
     REPEAT_RATE = 0.02
 
-    def __init__(self, scroll_axis: AxisInfo):
+    def __init__(self, scroll_axis: Axis):
         self._scroll_val = 0
         self._scroll_axis = scroll_axis
         self._scroll_signal = None

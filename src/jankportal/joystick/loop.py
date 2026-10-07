@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, cast
 import evdev
 from evdev import ecodes
 
-from .analog import AxisInfo, Direction, Scroller
+from .analog import Axis, Direction, Scroller
 from .buttons import read_button
 
 if TYPE_CHECKING:
@@ -45,18 +45,18 @@ async def read_joystick(window: JankWindow):
     # build analog helpers
     window.toast(f"Listening to '{device.name}' at {device.path}")
     dev_cap = dict(device.capabilities().get(ecodes.EV_ABS, []))  # type: ignore
-    analog_x = AxisInfo(
+    analog_x = Axis(
         min=dev_cap[ecodes.ABS_X].min,  # type: ignore
         max=dev_cap[ecodes.ABS_X].max,  # type: ignore
         deadzone=Direction.DEADZONE,
     )
-    analog_y = AxisInfo(
+    analog_y = Axis(
         min=dev_cap[ecodes.ABS_Y].min,  # type: ignore
         max=dev_cap[ecodes.ABS_Y].max,  # type: ignore
         deadzone=Direction.DEADZONE,
     )
 
-    scroll = AxisInfo(
+    scroll = Axis(
         min=dev_cap[ecodes.ABS_RY].min,  # type: ignore
         max=dev_cap[ecodes.ABS_RY].max,  # type: ignore
         deadzone=Scroller.DEADZONE,
