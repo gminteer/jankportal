@@ -1,10 +1,15 @@
 import asyncio
 import shlex
-from typing import TYPE_CHECKING
+import sys
+from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
+import yaml
 from gi.repository import Gio, GLib, GObject
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from . import types
 
 
@@ -190,3 +195,26 @@ class Page(GObject.Object):
     @GObject.Property(type=Gio.ListStore, default=None)
     def actions(self):
         return self._actions
+
+
+def create_model(
+    panic_func: Callable[[str], None], file_name: str = "/usr/share/yafti/yafti.yml"
+):
+    """Parse YAFTI YML into Gio.ListStore"""
+    try:
+        path = Path(file_name)
+        with path.open() as file:
+            yafti = cast("types.Root", yaml.safe_load(file))
+            if not yafti:
+                panic_func("Error parsing yafti")
+                sys.exit(1)
+
+            model = Gio.ListStore(item_type=Page)
+            for screen in yafti["screens"]:
+                model.append(Page(screen))
+
+            return model
+
+    except FileNotFoundError:
+        panic_func(f"yafti scripts file not found at {file_name}")
+        sys.exit(1)

@@ -1,12 +1,9 @@
-import sys
-from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import gi
-import yaml
 
 from . import templates
-from .models import Action, Page
+from .models import Action, Page, create_model
 from .rows import create_row
 
 if TYPE_CHECKING:
@@ -14,34 +11,11 @@ if TYPE_CHECKING:
 
     from jankportal.app import JankWindow
 
-    from .types import Root, TitledPage
+    from .types import TitledPage
 
 
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gio, Gtk  # noqa: E402
-
-
-def create_model(
-    panic_func: Callable[[str], None], file_name: str = "/usr/share/yafti/yafti.yml"
-):
-    """Parse YAFTI YML into Gio.ListStore"""
-    try:
-        path = Path(file_name)
-        with path.open() as file:
-            yafti = cast("Root", yaml.safe_load(file))
-            if not yafti:
-                panic_func("Error parsing yafti")
-                sys.exit(1)
-
-            model = Gio.ListStore(item_type=Page)
-            for screen in yafti["screens"]:
-                model.append(Page(screen))
-
-            return model
-
-    except FileNotFoundError:
-        panic_func(f"yafti scripts file not found at {file_name}")
-        sys.exit(1)
 
 
 def create_pages(
