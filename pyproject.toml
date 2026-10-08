@@ -91,7 +91,8 @@ path = "hatch_build.py"
 [tool.hatch.build.targets.wheel]
 artifacts = [
     "src/jankportal/*.gresource",
-    "src/jankportal/_config.py"
+    "src/jankportal/_config.py",
+    "src/jankportal/gschemas.compiled",
 ]
 
 [tool.hatch.version]

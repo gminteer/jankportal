@@ -195,17 +195,24 @@ class OSTreeView:
         """Builds ViewStackPage based on rpm-ostree status, appends to window.stack"""
 
         self.window = window
+        self.window.settings.connect("changed", self.on_settings_changed)
 
     async def initialize(self):
         def image_filter(image: Gtk.StringObject):
             is_current = image.props.string == self.image
-            match_gnome = ("gnome" in image.props.string) == ("gnome" in self.image)
-            match_nvidia = ("nvidia" in image.props.string) == ("nvidia" in self.image)
-            return (match_gnome and match_nvidia) or is_current
+            allow_gnome = self.window.settings.get_boolean("allow-gnome")
+            allow_nvidia = self.window.settings.get_boolean("allow-nvidia")
+            match_gnome = allow_gnome or ("gnome" in image.props.string) == (
+                "gnome" in self.image
+            )
+            match_nvidia = allow_nvidia or ("nvidia" in image.props.string) == (
+                "nvidia" in self.image
+            )
+            return is_current or (match_gnome and match_nvidia)
 
         def tag_filter(tag: Gtk.StringObject):
             is_current = tag.props.string == self.tag
-            return ("." not in tag.props.string) or is_current
+            return is_current or ("." not in tag.props.string)
 
         def row_factory(deployment: Deployment):
             return create_row(
@@ -252,6 +259,10 @@ class OSTreeView:
     @property
     def selected_tag(self):
         return cast("Gtk.StringObject", self.page.tag.get_selected_item()).get_string()
+
+    def on_settings_changed(self, settings: Gio.Settings, key: str):
+        if key in ["allow-gnome", "allow-nvidia"]:
+            self._image_filter.changed(Gtk.FilterChange.DIFFERENT)
 
     def on_img_rebase_activated(self, button_row: Adw.ButtonRow):
         self.window.command_runner(

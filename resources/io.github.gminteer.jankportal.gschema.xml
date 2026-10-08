@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+    <schema id="io.github.gminteer.jankportal" path="/io/github/gminteer/jankportal/">
+        <key name="allow-nvidia" type="b">
+            <default>false</default>
+            <summary>Allow the nvidia driver to be added or removed</summary>
+        </key>
+        <key name="allow-gnome" type="b">
+            <default>false</default>
+            <summary>Allow the desktop environment to be changed</summary>
+        </key>
+    </schema>
+</schemalist>

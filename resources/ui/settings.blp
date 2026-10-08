@@ -1,0 +1,25 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $JankSettings: Adw.PreferencesDialog {
+    title: _("Settings");
+    search-enabled: false;
+
+    Adw.PreferencesPage {
+    title: _("Deployments");
+
+        Adw.PreferencesGroup {
+            title: _("Sketchy Rebases");
+            description: _("Allow potentially breaking image changes");
+
+            Adw.SwitchRow allow_nvidia {
+                title: _("Add/remove nvidia driver");
+            }
+
+            Adw.SwitchRow allow_gnome {
+                title: _("Change Desktop Environment");
+                subtitle: _("This can cause weird bugs and is unsupported.");
+            }
+        }
+    }
+}

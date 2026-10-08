@@ -27,6 +27,12 @@ template $JankWindow : Adw.ApplicationWindow {
                 tooltip-text: _("About");
                 clicked => $on_about_clicked();
             }
+            [end]
+            Button {
+                icon-name: "xsi-cog-symbolic";
+                tooltip-text: _("Settings");
+                clicked => $on_settings_clicked();
+            }
         }
 
         Adw.ToastOverlay overlay {

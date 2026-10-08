@@ -1,7 +1,7 @@
 import asyncio
 import sys
 import tempfile
-from importlib.resources import files
+from importlib import resources
 
 import gi
 from gi.events import GLibEventLoopPolicy
@@ -21,8 +21,19 @@ from gi.repository import (  # noqa: E402
     PangoCairo,
 )
 
+# load settings schema
+with resources.path(CFG.APP_NAME) as app_path:
+    schema_source = Gio.SettingsSchemaSource.new_from_directory(
+        str(app_path),
+        parent=Gio.SettingsSchemaSource.get_default(),
+        trusted=False,
+    )
+    schema = schema_source.lookup(CFG.APP_ID, recursive=False)
+
 # load resources
-resource_blob = files(CFG.APP_NAME).joinpath(f"{CFG.APP_NAME}.gresource").read_bytes()
+resource_blob = (
+    resources.files(CFG.APP_NAME).joinpath(f"{CFG.APP_NAME}.gresource").read_bytes()
+)
 resource = Gio.Resource.new_from_data(GLib.Bytes.new(resource_blob))
 Gio.resources_register(resource)
 font_blob = Gio.resources_lookup_data(
@@ -42,6 +53,9 @@ class JankApplication(Adw.Application):
 
     def __init__(self):
         super().__init__(application_id=CFG.APP_ID)
+        if not schema:
+            raise RuntimeError(f"Missing schema: '{CFG.APP_ID}'")
+        self.settings = Gio.Settings.new_full(schema)
 
     def _async_cleanup(self, task: asyncio.Task[None]):
         """Drop reference to async init task"""
@@ -59,7 +73,7 @@ class JankApplication(Adw.Application):
                 provider=css,
                 priority=Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
             )
-        win = JankWindow(application=self)
+        win = JankWindow(application=self, settings=self.settings)
         self._async_init = asyncio.create_task(win.initialize())
         self._async_init.add_done_callback(self._async_cleanup)
         win.present()

@@ -15,3 +15,4 @@ TODO.md
 # Build artifacts
 src/jankportal/*.gresource
 src/jankportal/_config.py
+src/jankportal/gschemas.compiled

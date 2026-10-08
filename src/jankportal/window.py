@@ -19,6 +19,7 @@ gi.require_version("Vte", "3.91")
 
 from gi.repository import (  # noqa: E402
     Adw,
+    Gio,
     GLib,
     GObject,
     Gtk,
@@ -30,6 +31,15 @@ GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
 
 from .ostree.view import OSTreeView  # noqa: E402
 from .yafti.view import YaftiView  # noqa: E402
+
+
+@Gtk.Template(resource_path=f"{CFG.APP_PATH}/ui/settings.ui")
+class JankSettings(Adw.PreferencesDialog):
+    """Settings Dialog"""
+
+    __gtype_name__ = "JankSettings"
+    allow_nvidia: Adw.SwitchRow = Gtk.Template.Child()
+    allow_gnome: Adw.SwitchRow = Gtk.Template.Child()
 
 
 @Gtk.Template(resource_path=f"{CFG.APP_PATH}/ui/app.ui")
@@ -46,8 +56,22 @@ class JankWindow(Adw.ApplicationWindow):
     overlay: Adw.ToastOverlay = Gtk.Template.Child()
     split_view: Adw.OverlaySplitView = Gtk.Template.Child()
 
-    def __init__(self, application: Adw.Application):
+    def __init__(self, application: Adw.Application, settings: Gio.Settings):
         super().__init__(application=application)
+        self.settings = settings
+        self._settings_dialog = JankSettings()
+        self.settings.bind(
+            "allow-nvidia",
+            self._settings_dialog.allow_nvidia,
+            property="active",
+            flags=Gio.SettingsBindFlags.DEFAULT,
+        )
+        self.settings.bind(
+            "allow-gnome",
+            self._settings_dialog.allow_gnome,
+            property="active",
+            flags=Gio.SettingsBindFlags.DEFAULT,
+        )
         self.props.title = CFG.APP_TITLE
         self.vte.connect("child-exited", self.on_child_exited)
         self.search.set_key_capture_widget(self)
@@ -91,6 +115,10 @@ class JankWindow(Adw.ApplicationWindow):
             license_type=getattr(Gtk.License, CFG.GTK_LICENSE),
         )
         about.present(self)
+
+    @Gtk.Template.Callback()
+    def on_settings_clicked(self, button: Gtk.Button):
+        self._settings_dialog.present(self)
 
     def on_child_exited(self, terminal: Vte.Terminal, status: int):
         """Countdown from DELAY, then close VTE and unwire the VTE opener"""
