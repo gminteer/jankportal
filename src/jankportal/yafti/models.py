@@ -1,6 +1,5 @@
 import asyncio
 import shlex
-import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -198,7 +197,7 @@ class Page(GObject.Object):
 
 
 def create_model(
-    panic_func: Callable[[str], None], file_name: str = "/usr/share/yafti/yafti.yml"
+    panic: Callable[[str], None], file_name: str = "/usr/share/yafti/yafti.yml"
 ):
     """Parse YAFTI YML into Gio.ListStore"""
     try:
@@ -206,8 +205,8 @@ def create_model(
         with path.open() as file:
             yafti = cast("types.Root", yaml.safe_load(file))
             if not yafti:
-                panic_func("Error parsing yafti")
-                sys.exit(1)
+                panic("Error parsing yafti")
+                raise RuntimeError()
 
             model = Gio.ListStore(item_type=Page)
             for screen in yafti["screens"]:
@@ -216,5 +215,5 @@ def create_model(
             return model
 
     except FileNotFoundError:
-        panic_func(f"yafti scripts file not found at {file_name}")
-        sys.exit(1)
+        panic(f"yafti scripts file not found at {file_name}")
+        raise RuntimeError()

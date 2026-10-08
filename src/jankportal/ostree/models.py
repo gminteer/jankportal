@@ -1,6 +1,5 @@
 import asyncio
 import json
-import sys
 from typing import TYPE_CHECKING
 
 import gi
@@ -86,7 +85,7 @@ async def create_deployment_model(panic: Callable[[str], None]):
 
     except FileNotFoundError:
         panic("rpm-ostree not in $PATH")
-        sys.exit(1)  # Never reached, makes type analysis happy
+        raise RuntimeError()
 
 
 async def create_tag_model(image: str, panic: Callable[[str], None]) -> Gtk.StringList:
@@ -112,4 +111,4 @@ async def create_tag_model(image: str, panic: Callable[[str], None]) -> Gtk.Stri
 
     except FileNotFoundError:
         panic("skopeo not in $PATH")
-        sys.exit(1)  # Never reaced, makes type analysis happy
+        raise RuntimeError()
