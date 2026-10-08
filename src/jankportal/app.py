@@ -30,15 +30,13 @@ from gi.repository import (  # noqa: E402
     Vte,
 )
 
-# Wait until VTE resolves
+# wait for gobject types or templates break
 GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
 
-# Load GTK resources
+# load resources
 resource_blob = files(CFG.APP_NAME).joinpath(f"{CFG.APP_NAME}.gresource").read_bytes()
 resource = Gio.Resource.new_from_data(GLib.Bytes.new(resource_blob))
 Gio.resources_register(resource)
-
-# Load in button symbol font
 font_blob = Gio.resources_lookup_data(
     f"{CFG.APP_PATH}/font/promptfont.ttf", Gio.ResourceLookupFlags.NONE
 ).get_data()
@@ -48,7 +46,7 @@ if font_blob:  # I wonder if i should invert this and blow up if it fails?
         font_map = PangoCairo.font_map_get_default()
         font_map.add_font_file(temp.name)
 
-# Need resources loaded first
+# need resources loaded first
 from .ostree.view import OSTreeView  # noqa: E402
 from .yafti.view import YaftiView  # noqa: E402
 
@@ -141,6 +139,7 @@ class JankWindow(Adw.ApplicationWindow):
             return
 
         self.command_label.props.label = f"{title_prefix}, hiding in {DELAY}s…"
+
         countdown = DELAY
 
         def delayed_close():
