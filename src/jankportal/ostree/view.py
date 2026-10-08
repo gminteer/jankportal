@@ -12,7 +12,7 @@ from .templates import Changelog, DeploymentActions, OverlayList, Page, Row
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from jankportal.app import JankWindow
+    from jankportal.window import JankWindow
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")

@@ -14,3 +14,16 @@ def align_drop_down(drop_down: Gtk.DropDown, halign: Gtk.Align = Gtk.Align.END) 
             break
 
         child = child.get_next_sibling()
+
+
+def find_child_by_name(parent: Gtk.Widget, name: str) -> Gtk.Widget | None:
+    """Loop through children until we hit one with a matching name"""
+    if parent.props.name == name:
+        return parent
+    child = parent.get_first_child()
+    while child is not None:
+        result = find_child_by_name(child, name)
+        if result is not None:
+            return result
+        child = child.get_next_sibling()
+    return None

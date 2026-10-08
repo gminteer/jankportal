@@ -6,7 +6,7 @@ from evdev import categorize, ecodes
 if TYPE_CHECKING:
     from evdev import InputEvent
 
-    from jankportal.app import JankWindow
+    from jankportal.window import JankWindow
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")

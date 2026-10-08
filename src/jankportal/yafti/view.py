@@ -9,7 +9,7 @@ from .rows import create_row
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from jankportal.app import JankWindow
+    from jankportal.window import JankWindow
 
     from .types import TitledPage
 

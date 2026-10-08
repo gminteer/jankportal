@@ -8,7 +8,7 @@ from .analog import Axis, Direction, Scroller
 from .buttons import read_button
 
 if TYPE_CHECKING:
-    from jankportal.app import JankWindow
+    from jankportal.window import JankWindow
 
 BTN_DOWN = 1
 BTN_UP = 0
