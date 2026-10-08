@@ -18,7 +18,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 gi.require_version("WebKit", "6.0")
 
-from gi.repository import Adw, Gio, GLib, GObject, Gtk, WebKit  # noqa: E402
+from gi.repository import Adw, Gio, GObject, Gtk, WebKit  # noqa: E402
 
 # wait for gobject types or templates break
 GObject.type_ensure(WebKit.WebView.__gtype__)  # type: ignore
