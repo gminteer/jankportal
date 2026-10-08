@@ -1,6 +1,3 @@
-import asyncio
-import json
-import sys
 from typing import TYPE_CHECKING, cast
 
 import gi
@@ -9,7 +6,7 @@ import requests
 
 from jankportal.lib import align_drop_down
 
-from .models import Deployment
+from .models import Deployment, create_deployment_model, create_tag_model
 from .templates import Changelog, DeploymentActions, OverlayList, Page, Row
 
 if TYPE_CHECKING:
@@ -23,93 +20,36 @@ gi.require_version("WebKit", "6.0")
 
 from gi.repository import Adw, Gio, GLib, GObject, Gtk, WebKit  # noqa: E402
 
-# Wait for WebKit to resolve
+# wait for gobject types or templates break
 GObject.type_ensure(WebKit.WebView.__gtype__)  # type: ignore
 
 
-# Constants
-IMAGES = [
-    "bazzite",
-    "bazzite-deck",
-    "bazzite-nvidia",
-    "bazzite-nvidia-open",
-    "bazzite-deck-nvidia",
-    "bazzite-gnome",
-    "bazzite-gnome-nvidia-open",
-    "bazzite-deck-gnome",
-    "bazzite-dx",
-    "bazzite-dx-gnome",
-    "bazzite-dx-nvidia",
-    "bazzite-dx-nvidia-gnome",
-]
+IMAGES = Gtk.StringList.new(
+    [
+        "bazzite",
+        "bazzite-deck",
+        "bazzite-nvidia",
+        "bazzite-nvidia-open",
+        "bazzite-deck-nvidia",
+        "bazzite-gnome",
+        "bazzite-gnome-nvidia-open",
+        "bazzite-deck-gnome",
+        "bazzite-dx",
+        "bazzite-dx-gnome",
+        "bazzite-dx-nvidia",
+        "bazzite-dx-nvidia-gnome",
+    ]
+)
 
 
-# Helper functions
-async def create_model(panic: Callable[[str], None]):
-    """Parse rpm-ostree status into Gio.ListStore"""
-    try:
-        model = Gio.ListStore(item_type=Deployment)
-        process = await asyncio.create_subprocess_exec(
-            "rpm-ostree",
-            "status",
-            "--json",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await process.communicate()
-
-        if process.returncode != 0:
-            panic(f"rpm-ostree error: {stderr}")
-        ostree_status = json.loads(stdout)
-
-        image: str = ""
-        tag: str = ""
-        for index, deployment in enumerate(ostree_status["deployments"]):
-            model.append(Deployment(index=index, deployment=deployment))
-            if deployment["booted"]:
-                image, tag = (
-                    deployment["container-image-reference"].split("/")[-1].split(":")
-                )
-        return model, image, tag
-
-    except FileNotFoundError:
-        panic("rpm-ostree not in $PATH")
-        sys.exit(1)  # Never reached, makes type analysis happy
-
-
-async def get_tags(
-    image: str, panic: Callable[[str], None]
-) -> tuple[list[str], list[str]]:
-    """Get tags for a given image from skopeo, sorts them into branches and releases"""
-
-    image_uri = f"docker://ghcr.io/ublue-os/{image}"
-    try:
-        process = await asyncio.create_subprocess_exec(
-            "skopeo",
-            "list-tags",
-            image_uri,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await process.communicate()
-        if process.returncode != 0:
-            panic(f"skopeo error: {stderr}")
-
-        raw_tags = json.loads(stdout)["Tags"]
-        # filter for just stable and testing tags
-        tags = [tag for tag in raw_tags if tag.startswith(("stable", "testing"))]
-        branch_tags: list[str] = []
-        release_tags: list[str] = []
-        for tag in tags:
-            if "." in tag:
-                release_tags.append(tag)
-            else:
-                branch_tags.append(tag)
-        return branch_tags, release_tags
-
-    except FileNotFoundError:
-        panic("skopeo not in $PATH")
-        sys.exit(1)  # Never reaced, makes type analysis happy
+def search_filterlist(list: Gtk.FilterListModel, val: str):
+    index = -1
+    for i in range(len(list)):
+        current = cast("Gtk.StringObject", list.get_item(i))
+        if current.props.string == val:
+            index = i
+            break
+    return index
 
 
 def wrap_html(changelog: str):
@@ -192,6 +132,8 @@ async def create_page(
     current_image: str,
     current_tag: str,
     row_factory: Callable[[Deployment], Adw.ExpanderRow],
+    image_filter: Gtk.CustomFilter,
+    tag_filter: Gtk.CustomFilter,
     panic: Callable[[str], None],
 ):
     def on_img_list_keynav_failed(listbox: Gtk.ListBox, direction: Gtk.DirectionType):
@@ -220,35 +162,22 @@ async def create_page(
 
     # Prevent users from going off the rails
     # (only show nvidia/gnome images if currently on a matching image)
-    filtered_images = [
-        image
-        for image in IMAGES
-        if (
-            ("gnome" in image) == ("gnome" in current_image)
-            and ("nvidia" in image) == ("nvidia" in current_image)
-        )
-    ]
-    image_model = Gtk.StringList.new(sorted(filtered_images))
-
-    page.image.set_model(image_model)
-    index = image_model.find(current_image)
-    if index == GLib.MAXUINT:
-        image_model.append(current_image)
-        page.image.set_selected(len(image_model))
-    else:
-        page.image.set_selected(index)
+    image_filter_model = Gtk.FilterListModel.new(IMAGES, image_filter)
+    page.image.set_model(image_filter_model)
+    index = search_filterlist(image_filter_model, current_image)
+    if index == -1:
+        panic(f"'{current_image}' not in filtered image list!")
+    page.image.set_selected(index)
 
     # Only show branch tags
-    branch_tags, _release_tags = await get_tags(current_image, panic)
-    tag_model = Gtk.StringList.new(sorted(branch_tags))
+    tags = await create_tag_model(current_image, panic)
+    tag_filter_model = Gtk.FilterListModel.new(tags, tag_filter)
 
-    page.tag.set_model(tag_model)
-    index = tag_model.find(current_tag)
-    if index == GLib.MAXUINT:
-        tag_model.append(current_tag)
-        page.tag.set_selected(tag_model.get_n_items())
-    else:
-        page.tag.set_selected(index)
+    page.tag.set_model(tag_filter_model)
+    index = search_filterlist(tag_filter_model, current_tag)
+    if index == -1:
+        panic(f"'{current_tag}' not in filtered tag list!")
+    page.tag.set_selected(index)
 
     deploy_list = Gtk.ListBox(
         selection_mode=Gtk.SelectionMode.NONE,
@@ -268,7 +197,15 @@ class OSTreeView:
         self.window = window
 
     async def initialize(self):
-        self.model, self.image, self.tag = await create_model(self.window.panic)
+        def image_filter(image: Gtk.StringObject):
+            is_current = image.props.string == self.image
+            match_gnome = ("gnome" in image.props.string) == ("gnome" in self.image)
+            match_nvidia = ("nvidia" in image.props.string) == ("nvidia" in self.image)
+            return (match_gnome and match_nvidia) or is_current
+
+        def tag_filter(tag: Gtk.StringObject):
+            is_current = tag.props.string == self.tag
+            return ("." not in tag.props.string) or is_current
 
         def row_factory(deployment: Deployment):
             return create_row(
@@ -279,16 +216,26 @@ class OSTreeView:
                 self.on_rebase_activated,
             )
 
-        self.page = await create_page(
-            self.model, self.image, self.tag, row_factory, self.window.panic
+        self.model, self.image, self.tag = await create_deployment_model(
+            self.window.panic
         )
-        self._image_index = cast("Gtk.StringList", self.page.image.props.model).find(
-            self.image
+        self._image_filter = Gtk.CustomFilter.new(image_filter)
+        self._tag_filter = Gtk.CustomFilter.new(tag_filter)
+        self.page = await create_page(
+            self.model,
+            self.image,
+            self.tag,
+            row_factory,
+            self._image_filter,
+            self._tag_filter,
+            self.window.panic,
         )
 
-        self._tag_index = cast("Gtk.StringList", self.page.tag.props.model).find(
-            self.tag
-        )
+        img_model = cast("Gtk.FilterListModel", self.page.image.props.model)
+        self._image_index = search_filterlist(img_model, self.image)
+        tag_model = cast("Gtk.FilterListModel", self.page.tag.props.model)
+        self._tag_index = search_filterlist(tag_model, self.tag)
+
         self.page.img_rebase.connect("activated", self.on_img_rebase_activated)
         self.page.img_reset.connect("activated", self.on_img_reset_activated)
         self.page.image.connect("notify::selected-item", self.on_image_selected)
