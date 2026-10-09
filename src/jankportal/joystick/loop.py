@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, cast
 import evdev
 import pyudev
 from evdev import ecodes
-from gi.repository import GLib
+from pyudev.glib import MonitorObserver
 
 from .analog import Axis, Direction, Scroller
 from .buttons import read_button
@@ -55,42 +55,34 @@ class JoystickWrangler:
             ):
                 self._joystick = evdev.InputDevice(device.device_node)
                 self._joystick_pump = asyncio.create_task(self._read_joystick())
-                return
-        self.window.toast("No joysticks detected")
+                break
+        if not self._joystick:
+            self.window.toast("No joysticks detected")
         self._monitor = pyudev.Monitor.from_netlink(context)
         self._monitor.filter_by(subsystem="input")
-        self._monitor.start()
-        GLib.io_add_watch(
-            self._monitor.fileno(),
-            GLib.IO_IN,
-            self.on_udev_action,
-        )
+        self._observer = MonitorObserver(self._monitor)
+        self._observer.connect("device-event", self.on_device_event)
 
-    def on_udev_action(self, source, condition):
-        print("event!")
-        while True:
-            device = self._monitor.poll()
-            if not device:
-                return
-            action = device.action
-            match action:
-                case "add":
-                    if self._joystick:
-                        print("ignoring, already have a joystick")
-                        return
-                    if device.device_node and is_joystick(device.device_node):
-                        self._joystick = evdev.InputDevice(device.device_node)
-                        self._joystick_pump = asyncio.create_task(self._read_joystick())
+    def on_device_event(self, observer: MonitorObserver, device: pyudev.Device):
+        match device.action:
+            case val if (
+                val == "add"
+                and not self._joystick
+                and device.device_node
+                and is_joystick(device.device_node)
+            ):
+                self._joystick = evdev.InputDevice(device.device_node)
+                self._joystick_pump = asyncio.create_task(self._read_joystick())
 
-                case "remove":
-                    if device.device_node == self._joystick.path:
-                        self.window.toast(
-                            f"Joystick '{self._joystick.name}' disconnected"
-                        )
-                        self._joystick_pump.cancel()
-                        self._joystick_pump = None
-                    else:
-                        print("ignoring, disconnected device isn't our joystick")
+            case val if (
+                val == "remove"
+                and isinstance(self._joystick, evdev.InputDevice)
+                and self._joystick.path == device.device_node
+            ):
+                self.window.toast(f"Joystick '{self._joystick.name}' disconnected")
+                self._joystick_pump.cancel()
+                self._joystick_pump = None
+                self._joystick = None
 
     async def _read_joystick(self):
         """read evdev events from a joystick and duct tape them to GTK4"""
