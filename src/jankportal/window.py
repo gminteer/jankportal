@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 import gi
 
 from . import _config as CFG
-from .joystick.loop import read_joystick
+from .joystick.loop import JoystickWrangler
 from .lib import find_child_by_name
 
 gi.require_version("Gtk", "4.0")
@@ -76,11 +76,15 @@ class JankWindow(Adw.ApplicationWindow):
         self.vte.connect("child-exited", self.on_child_exited)
         self.search.set_key_capture_widget(self)
         self._vte_is_running = False
+        self.connect("realize", self.on_window_realized)
 
     def _close_vte(self):
         self.vte.disconnect_by_func(self.on_contents_changed)
         self.vte.reset(clear_history=True, clear_tabstops=True)
         self.bottom_sheet.props.open = False
+
+    def on_window_realized(self, window: JankWindow):
+        self._joystick_wrangler = JoystickWrangler(self)
 
     @Gtk.Template.Callback()
     def on_keep_vte_open_clicked(self, button: Gtk.ToggleButton):
@@ -238,5 +242,5 @@ class JankWindow(Adw.ApplicationWindow):
             )
         )
         self.stack.add_titled(child=placeholder, name="ostree", title="Deployments")
-        self._read_joystick = asyncio.create_task(read_joystick(self))
+        # self._joystick_wrangler = JoystickWrangler(self)
         await self.ostree_view.initialize()

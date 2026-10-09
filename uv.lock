@@ -170,7 +170,7 @@ dev = [
 requires-dist = [
     { name = "evdev", specifier = ">=1.9.3" },
     { name = "markdown", specifier = ">=3.10.3" },
-    { name = "pyudev", specifier = ">=0.24.5" },
+    { name = "pyudev", specifier = ">=0.24.4" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.33.1" },
 ]
