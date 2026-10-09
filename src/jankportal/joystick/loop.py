@@ -59,7 +59,7 @@ class JoystickWrangler:
         self.window.toast("No joysticks detected")
         self._monitor = pyudev.Monitor.from_netlink(context)
         self._monitor.filter_by(subsystem="input")
-        self._monitor.start
+        self._monitor.start()
         GLib.io_add_watch(
             self._monitor.fileno(),
             GLib.IO_IN,
