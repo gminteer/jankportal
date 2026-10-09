@@ -1,3 +1,5 @@
+"""Type hints for YAFTI dictionaries"""
+
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 if TYPE_CHECKING:

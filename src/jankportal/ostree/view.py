@@ -1,3 +1,5 @@
+"""Build deployments page"""
+
 from typing import TYPE_CHECKING, cast
 
 import gi
@@ -275,9 +277,7 @@ class OSTreeView:
         self.page.tag.set_selected(self._tag_index)
 
     def _handle_img_action_visibility(self):
-        visible = not (
-            self.image == self.selected_image and self.tag == self.selected_tag
-        )
+        visible = (self.image != self.selected_image) or (self.tag != self.selected_tag)
         self.page.img_rebase.props.visible = visible
         self.page.img_reset.props.visible = visible
 
@@ -294,16 +294,18 @@ class OSTreeView:
 
         # Get release notes for whichever version was selected
         # and convert to an HTML document
-        uri = f"https://api.github.com/repos/ublue-os/bazzite/releases/tags/{tag}"
-        response = requests.get(uri)
+        response = requests.get(
+            f"https://api.github.com/repos/ublue-os/bazzite/releases/tags/{tag}"
+        )
         if response.status_code != 200:
             self.window.warn(
                 title=f"HTTP Error {response.status_code}", message=response.text
             )
             return
-        raw_changelog = response.json()["body"]
         changelog = wrap_html(
-            markdown.markdown(raw_changelog, extensions=["extra", "codehilite"])
+            markdown.markdown(
+                response.json()["body"], extensions=["extra", "codehilite"]
+            )
         )
         dialog = Changelog()
         dialog.bar.props.subtitle = f"v{tag}"

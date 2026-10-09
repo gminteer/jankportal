@@ -1,3 +1,5 @@
+"""Helper functions used in at least two different files"""
+
 import gi
 
 gi.require_version("Gtk", "4.0")
@@ -22,8 +24,7 @@ def find_child_by_name(parent: Gtk.Widget, name: str) -> Gtk.Widget | None:
         return parent
     child = parent.get_first_child()
     while child is not None:
-        result = find_child_by_name(child, name)
-        if result is not None:
+        if result := find_child_by_name(child, name):
             return result
         child = child.get_next_sibling()
     return None

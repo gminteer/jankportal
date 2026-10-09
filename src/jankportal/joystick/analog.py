@@ -1,3 +1,5 @@
+"""Handle joystick analog inputs"""
+
 import asyncio
 import math
 from enum import Enum

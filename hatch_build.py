@@ -1,3 +1,5 @@
+"""Hatch build hook"""
+
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path

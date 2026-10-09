@@ -1,3 +1,5 @@
+"""Adapt rpm-ostree / skopeo data to GObjects"""
+
 import asyncio
 import json
 from typing import TYPE_CHECKING

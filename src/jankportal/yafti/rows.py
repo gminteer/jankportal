@@ -1,3 +1,5 @@
+"""Create different types of action rows"""
+
 from typing import TYPE_CHECKING, cast
 
 import gi

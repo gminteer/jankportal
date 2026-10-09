@@ -1,3 +1,5 @@
+"""Build yafti pages"""
+
 from typing import TYPE_CHECKING, cast
 
 import gi

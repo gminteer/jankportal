@@ -1,3 +1,5 @@
+"""UI templates for YAFTI pages"""
+
 import gi
 
 from jankportal._config import APP_PATH

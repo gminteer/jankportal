@@ -1,3 +1,5 @@
+"""Type hint for json dictionary"""
+
 from typing import TypedDict
 
 Deployment = TypedDict(

@@ -1,7 +1,9 @@
+"""MainWindow class"""
+
 import os
 import sys
 from importlib.metadata import version
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -75,15 +77,11 @@ class JankWindow(Adw.ApplicationWindow):
         self.vte.connect("child-exited", self.on_child_exited)
         self.search.set_key_capture_widget(self)
         self._vte_is_running = False
-        self.connect("realize", self.on_window_realized)
 
     def _close_vte(self):
         self.vte.disconnect_by_func(self.on_contents_changed)
         self.vte.reset(clear_history=True, clear_tabstops=True)
         self.bottom_sheet.props.open = False
-
-    def on_window_realized(self, window: JankWindow):
-        self._joystick_wrangler = JoystickWrangler(self)
 
     @Gtk.Template.Callback()
     def on_keep_vte_open_clicked(self, button: Gtk.ToggleButton):
@@ -127,8 +125,8 @@ class JankWindow(Adw.ApplicationWindow):
         """Countdown from DELAY, then close VTE and unwire the VTE opener"""
 
         DELAY = 3
-        if self._vte_done_callback is not None:
-            self._vte_done_callback()  # type: ignore
+        if self._vte_done_callback:
+            self._vte_done_callback()
             self._vte_done_callback = None
 
         self._vte_is_running = False
@@ -228,11 +226,11 @@ class JankWindow(Adw.ApplicationWindow):
 
         self.yafti_view = YaftiView(self)
         self.stack.props.visible_child_name = "welcome"
-        parent = self.stack.get_child_by_name("welcome")
-        if parent is not None:
-            starter_focus = find_child_by_name(parent, "bazzite-documentation")
-            if starter_focus is not None:
-                starter_focus.grab_focus()
+        parent = cast("Gtk.Widget", self.stack.get_child_by_name("welcome"))
+        starter_focus = cast(
+            "Gtk.Widget", find_child_by_name(parent, "bazzite-documentation")
+        )
+        starter_focus.grab_focus()
         self.ostree_view = OSTreeView(self)
         placeholder = Adw.Bin(
             child=Adw.StatusPage(
@@ -241,5 +239,5 @@ class JankWindow(Adw.ApplicationWindow):
             )
         )
         self.stack.add_titled(child=placeholder, name="ostree", title="Deployments")
-        # self._joystick_wrangler = JoystickWrangler(self)
+        self._joystick_wrangler = JoystickWrangler(self)
         await self.ostree_view.initialize()

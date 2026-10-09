@@ -1,3 +1,5 @@
+"""UI templates for deployments page"""
+
 import gi
 
 from jankportal._config import APP_PATH

@@ -1,7 +1,10 @@
+"""High-level GTK / Python application housekeeping stuff"""
+
 import asyncio
 import sys
 import tempfile
 from importlib import resources
+from typing import cast
 
 import gi
 from gi.events import GLibEventLoopPolicy
@@ -36,14 +39,16 @@ resource_blob = (
 )
 resource = Gio.Resource.new_from_data(GLib.Bytes.new(resource_blob))
 Gio.resources_register(resource)
-font_blob = Gio.resources_lookup_data(
-    f"{CFG.APP_PATH}/font/promptfont.ttf", Gio.ResourceLookupFlags.NONE
-).get_data()
-if font_blob:  # I wonder if i should invert this and blow up if it fails?
-    with tempfile.NamedTemporaryFile(suffix=".ttf") as temp:
-        temp.write(font_blob)  # you apparently can't just give Pango a bytestream
-        font_map = PangoCairo.font_map_get_default()
-        font_map.add_font_file(temp.name)
+font_blob = cast(
+    "bytes",
+    Gio.resources_lookup_data(
+        f"{CFG.APP_PATH}/font/promptfont.ttf", Gio.ResourceLookupFlags.NONE
+    ).get_data(),
+)
+with tempfile.NamedTemporaryFile(suffix=".ttf") as temp:
+    temp.write(font_blob)  # you apparently can't just give Pango a bytestream
+    font_map = PangoCairo.font_map_get_default()
+    font_map.add_font_file(temp.name)
 
 from .window import JankWindow  # noqa: E402
 

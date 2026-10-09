@@ -1,3 +1,5 @@
+"""Adapt YAFTI data to GObjects"""
+
 import asyncio
 import shlex
 from pathlib import Path
@@ -201,8 +203,7 @@ def create_model(
 ):
     """Parse YAFTI YML into Gio.ListStore"""
     try:
-        path = Path(file_name)
-        with path.open() as file:
+        with Path(file_name).open() as file:
             yafti = cast("types.Root", yaml.safe_load(file))
             if not yafti:
                 panic("Error parsing yafti")

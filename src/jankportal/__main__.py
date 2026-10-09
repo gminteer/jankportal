@@ -1,3 +1,5 @@
+"""Provide package entrypoint"""
+
 import sys
 
 from .app import main

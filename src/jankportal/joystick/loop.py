@@ -1,4 +1,6 @@
 # type: ignore
+"""glue joystick events to GTK events"""
+
 # type hints on evdev seem to only partially exist, and there
 # aren't any for pyudev at all. oh well...
 
