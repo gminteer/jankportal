@@ -100,7 +100,7 @@ def create_dropdown_row(
         """Adapt on_row_selected event to the button style callback we received"""
         option = cast("Option", drop_down.get_selected_item())
         # don't fire activation event on initial status value resolution
-        if last_status == "AWAITING_FUTURE":
+        if last_status == "AWAITING_FUTURE" or last_status == option.parent.status:
             return
         callback(drop_down, option.label, option.script, option.parent.refresh)
 
