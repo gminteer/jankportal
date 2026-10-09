@@ -60,8 +60,8 @@ class CustomBuildHook(BuildHookInterface[Any]):
         # compile settings schema
         subprocess.run(["glib-compile-schemas", str(RESOURCE_DIR)], check=True)
         (RESOURCE_DIR / "gschemas.compiled").copy_into(OUTPUT_DIR)
+
         # generate gresource.xml
-        gresource_path = RESOURCE_DIR / "gresource.xml"
         root = ET.Element("gresources")
         gresource_el = ET.SubElement(root, "gresource", prefix=APP_PATH)
 
@@ -85,7 +85,9 @@ class CustomBuildHook(BuildHookInterface[Any]):
 
         tree = ET.ElementTree(root)
         ET.indent(tree, space="  ")
-        tree.write(gresource_path, encoding="utf-8", xml_declaration=True)
+        tree.write(
+            RESOURCE_DIR / "gresource.xml", encoding="utf-8", xml_declaration=True
+        )
 
         # build resource file
         output_resource_file = OUTPUT_DIR / f"{APP_NAME}.gresource"
@@ -95,13 +97,13 @@ class CustomBuildHook(BuildHookInterface[Any]):
                 "glib-compile-resources",
                 f"--sourcedir={RESOURCE_DIR}",
                 f"--target={output_resource_file}",
-                str(gresource_path),
+                str(RESOURCE_DIR / "gresource.xml"),
             ],
             check=True,
         )
 
         # trash temporary files
-        gresource_path.unlink(missing_ok=True)
+        (RESOURCE_DIR / "gresource.xml").unlink(missing_ok=True)
         (RESOURCE_DIR / "gschemas.compiled").unlink(missing_ok=True)
         for ui_file in compiled_ui_files:
             ui_file.unlink(missing_ok=True)
