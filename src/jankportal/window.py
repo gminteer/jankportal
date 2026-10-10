@@ -28,7 +28,7 @@ from gi.repository import (  # noqa: E402
 )
 
 # wait for gobject types or templates break
-GObject.type_ensure(Vte.Terminal.__gtype__)  # type: ignore
+GObject.type_ensure(Vte.Terminal)
 
 from .ostree.view import OSTreeView  # noqa: E402
 from .yafti.view import YaftiView  # noqa: E402

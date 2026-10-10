@@ -45,8 +45,9 @@ font_blob = cast(
         f"{CFG.APP_PATH}/font/promptfont.ttf", Gio.ResourceLookupFlags.NONE
     ).get_data(),
 )
+# you apparently can't just give Pango a bytestream
 with tempfile.NamedTemporaryFile(suffix=".ttf") as temp:
-    temp.write(font_blob)  # you apparently can't just give Pango a bytestream
+    temp.write(font_blob)
     font_map = PangoCairo.font_map_get_default()
     font_map.add_font_file(temp.name)
 

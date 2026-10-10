@@ -11,7 +11,7 @@ gi.require_version("WebKit", "6.0")
 from gi.repository import Adw, GObject, Gtk, WebKit  # noqa: E402
 
 # Wait for WebKit to resolve
-GObject.type_ensure(WebKit.WebView.__gtype__)  # type: ignore
+GObject.type_ensure(WebKit.WebView)
 
 
 @Gtk.Template(resource_path=f"{APP_PATH}/ui/ostree/changelog.ui")

@@ -58,7 +58,9 @@ class Deployment(GObject.Object):
         return self._overlays
 
 
-async def create_deployment_model(panic: Callable[[str], None]):
+async def create_deployment_model(
+    panic: Callable[[str], None],
+) -> tuple[Gio.ListStore[Deployment], str, str]:
     """Parse rpm-ostree status into Gio.ListStore"""
     try:
         model = Gio.ListStore(item_type=Deployment)
@@ -91,14 +93,13 @@ async def create_deployment_model(panic: Callable[[str], None]):
 
 
 async def create_tag_model(image: str, panic: Callable[[str], None]) -> Gtk.StringList:
-    """Get tags for a given image from skopeo, sorts them into branches and releases"""
+    """Get tags for a given image from skopeo"""
 
-    image_uri = f"docker://ghcr.io/ublue-os/{image}"
     try:
         process = await asyncio.create_subprocess_exec(
             "skopeo",
             "list-tags",
-            image_uri,
+            f"docker://ghcr.io/ublue-os/{image}",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
