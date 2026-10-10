@@ -106,7 +106,7 @@ metadata = true
 dirty = true
 
 [external]
-# the scripts blindly assume "dep:pkg:rpm/fedora/$package@>=$version"
+# the scripts blindly assume "<everything means fedora package>/$package@>=$version"
 # (don't violate this constraint without dealing with it)
 build-requires = [
     "dep:pkg:rpm/fedora/blueprint-compiler@>=0.20.4",
