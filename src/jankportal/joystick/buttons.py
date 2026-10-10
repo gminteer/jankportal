@@ -57,14 +57,6 @@ def read_button(event: InputEvent, focus: Gtk.Widget, window: JankWindow):
             window.search.grab_focus()
 
         case ecodes.BTN_TL:
-            # left bumper = shift-tab
-            window.child_focus(Gtk.DirectionType.TAB_BACKWARD)
-
-        case ecodes.BTN_TR:
-            # right bumper = tab
-            window.child_focus(Gtk.DirectionType.TAB_FORWARD)
-
-        case ecodes.BTN_TL2:
             # left trigger = previous viewstack page
             if not (current_page := window.stack.get_visible_child()):
                 return
@@ -87,7 +79,7 @@ def read_button(event: InputEvent, focus: Gtk.Widget, window: JankWindow):
                 idx += 1
                 page = page.get_next_sibling()
 
-        case ecodes.BTN_TR2:
+        case ecodes.BTN_TR:
             # right tigger = next viewstack page
             if not (page := window.stack.get_visible_child()):
                 return

@@ -46,9 +46,9 @@ font_blob = cast(
     ).get_data(),
 )
 # you apparently can't just give Pango a bytestream
-with tempfile.NamedTemporaryFile(suffix=".ttf") as temp:
+with tempfile.NamedTemporaryFile(suffix=".ttf", delete=False) as temp:
     temp.write(font_blob)
-    font_map = PangoCairo.font_map_get_default()
+    font_map = PangoCairo.FontMap.get_default()
     font_map.add_font_file(temp.name)
 
 from .window import JankWindow  # noqa: E402

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, cast
 import evdev
 import pyudev
 from evdev import ecodes
+from gi.repository import GObject
 from pyudev.glib import MonitorObserver
 
 from .analog import Axis, Direction, Scroller
@@ -42,8 +43,9 @@ def is_joystick(device_node: str):
     return False
 
 
-class JoystickWrangler:
+class JoystickWrangler(GObject.Object):
     def __init__(self, window: JankWindow):
+        super().__init__()
         self.window = window
         self._joystick = None
 
@@ -65,6 +67,10 @@ class JoystickWrangler:
         self._observer = MonitorObserver(self._monitor)
         self._observer.connect("device-event", self.on_device_event)
 
+    @GObject.Property(type=bool, default=False)
+    def has_joystick(self):
+        return self._joystick is not None
+
     def on_device_event(self, observer: MonitorObserver, device: pyudev.Device):
         match device.action:
             case val if (
@@ -75,6 +81,7 @@ class JoystickWrangler:
             ):
                 self._joystick = evdev.InputDevice(device.device_node)
                 self._joystick_pump = asyncio.create_task(self._read_joystick())
+                self.notify("has_joystick")
 
             case val if (
                 val == "remove"
@@ -85,6 +92,7 @@ class JoystickWrangler:
                 self._joystick_pump.cancel()
                 self._joystick_pump = None
                 self._joystick = None
+                self.notify("has_joystick")
 
     async def _read_joystick(self):
         """read evdev events from a joystick and duct tape them to GTK4"""
@@ -111,8 +119,7 @@ class JoystickWrangler:
         direction = Direction(analog_x, analog_y, self.window)
         scroller = Scroller(scroll)
         try:
-            async for event in js.async_read_loop():  # type: ignore
-                event = cast("evdev.InputEvent", event)
+            async for event in cast("evdev.InputEvent", js.async_read_loop()):
                 if event.type == ecodes.EV_ABS:
                     # analog inputs
                     if event.code in [

@@ -56,6 +56,8 @@ class JankWindow(Adw.ApplicationWindow):
     keep_vte_open: Gtk.ToggleButton = Gtk.Template.Child()
     overlay: Adw.ToastOverlay = Gtk.Template.Child()
     split_view: Adw.OverlaySplitView = Gtk.Template.Child()
+    joystick_stack_nav: Gtk.Box = Gtk.Template.Child()
+    joystick_main_nav: Gtk.Box = Gtk.Template.Child()
 
     def __init__(self, application: Adw.Application, settings: Gio.Settings):
         super().__init__(application=application)
@@ -240,4 +242,16 @@ class JankWindow(Adw.ApplicationWindow):
         )
         self.stack.add_titled(child=placeholder, name="ostree", title="Deployments")
         self._joystick_wrangler = JoystickWrangler(self)
+        self._joystick_wrangler.bind_property(
+            "has_joystick",
+            self.joystick_main_nav,
+            "visible",
+            flags=GObject.BindingFlags.SYNC_CREATE,
+        )
+        self._joystick_wrangler.bind_property(
+            "has_joystick",
+            self.joystick_stack_nav,
+            "visible",
+            flags=GObject.BindingFlags.SYNC_CREATE,
+        )
         await self.ostree_view.initialize()

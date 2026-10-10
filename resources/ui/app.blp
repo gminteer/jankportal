@@ -43,11 +43,104 @@ template $JankWindow : Adw.ApplicationWindow {
                 show-drag-handle: false;
 
                 content: Adw.OverlaySplitView split_view {
-                    sidebar: Adw.ViewSwitcherSidebar stack_switcher {
-                        stack: stack;
+                    sidebar: Box {
+                        orientation: vertical;
+                        Box joystick_stack_nav {
+                          orientation: horizontal;
+                          spacing: 6;
+                          halign: center;
+                          valign: center;
+                            Label {
+                                styles ["button-prompt"]
+                                label: _("↘");
+                            }
+                            Label {
+                              label: _("↑ Page ↓");
+                            }
+                            Label {
+                                styles ["button-prompt"]
+                                label: _("↙");
+                            }
+                        }
+                        Separator {
+                          orientation: horizontal;
+                          margin-bottom: 10;
+                          margin-top: 10;
+                        }
+                        Adw.ViewSwitcherSidebar stack_switcher {
+                            stack: stack;
+                        }
                     };
-                    content: Adw.ViewStack stack {
-                        vhomogeneous: false;
+                    content: Box {
+                        orientation: vertical;
+                        Box joystick_main_nav {
+                            orientation: horizontal;
+                            spacing: 24;
+                            halign: center;
+                            Box {
+                                orientation: horizontal;
+                                spacing: 6;
+                                Label {
+                                  styles ["button-prompt"]
+                                  label: _("⇱ ⊄");
+                                }
+                                Label {
+                                  label: _("Navigate");
+                                }
+                            }
+                            Box {
+                                orientation: horizontal;
+                                spacing: 6;
+                                Label {
+                                  styles ["button-prompt"]
+                                  label: _("⇵");
+                                }
+                                Label {
+                                  label: _("Scroll");
+                                }
+                            }
+                            Box {
+                                orientation: horizontal;
+                                spacing: 6;
+                                Label {
+                                  styles ["button-prompt"]
+                                  label: _("↧");
+                                }
+                                Label {
+                                  label: _("Select");
+                                }
+                            }
+                            Box {
+                                orientation: horizontal;
+                                spacing: 6;
+                                Label {
+                                  styles ["button-prompt"]
+                                  label: _("↦");
+                                }
+                                Label {
+                                  label: _("Cancel");
+                                }
+                            }
+                            Box {
+                                orientation: horizontal;
+                                spacing: 6;
+                                Label {
+                                  styles ["button-prompt"]
+                                  label: _("↥");
+                                }
+                                Label {
+                                  label: _("Search");
+                                }
+                            }
+                        }
+                        Separator {
+                            orientation: horizontal;
+                            margin-bottom: 10;
+                            margin-top: 10;
+                        }
+                        Adw.ViewStack stack {
+                            vhomogeneous: false;
+                        }
                     };
                 };
 
