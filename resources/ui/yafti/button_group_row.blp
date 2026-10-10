@@ -1,0 +1,17 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $YaftiButtonGroupRow : Adw.ActionRow {
+  focusable: false;
+  [suffix]
+  Box emblem_box {
+    name: "emblem-box";
+    width-request: 16;
+  }
+  [suffix]
+  Box action_box {
+    name: "action-box";
+    styles ["action-button-group"]
+
+  }
+}

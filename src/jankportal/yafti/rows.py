@@ -7,6 +7,7 @@ import gi
 from jankportal.lib import align_drop_down
 
 from .models import Option
+from .templates import ButtonGroupRow, DropDownRow, ExpanderRow
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -71,22 +72,16 @@ def create_expander_row(
     callback: Callable[[Gtk.Widget, str, str, Callable[[], None] | None], None],
 ):
     """Create an ExpanderRow with ActionRows"""
-    row = Adw.ExpanderRow(title=action.title, subtitle=action.description)
-    emblem_box = Gtk.Box(width_request=16, name="emblem-box")
-    row.add_suffix(emblem_box)
+    row = ExpanderRow(title=action.title, subtitle=action.description, name=action.name)
     emblem = create_emblem(action.status, "")
     if emblem:
-        emblem_box.append(emblem)
-    container = Gtk.ListBox(
-        selection_mode=Gtk.SelectionMode.NONE, css_classes=["boxed-list", "sub-list"]
-    )
-    row.add_row(container)
+        row.emblem_box.append(emblem)
     for option in action.options:
         option = cast("Option", option)
         option_row = Adw.ActionRow(title=option.label, name=option.name)
         option_row.props.activatable = True
         option_row.connect("activated", callback, option.label, option.script)
-        container.append(option_row)
+        row.container.append(option_row)
     return row
 
 
@@ -106,55 +101,36 @@ def create_dropdown_row(
             return
         callback(drop_down, option.label, option.script, option.parent.refresh)
 
-    row = Adw.ActionRow(
-        title=action.title, subtitle=action.description, focusable=False
-    )
+    row = DropDownRow(title=action.title, subtitle=action.description, name=action.name)
+    align_drop_down(row.drop_down)
 
-    drop_down = Gtk.DropDown(
-        expression=Gtk.PropertyExpression.new(
-            Option,
-            expression=None,
-            property_name="label",
-        ),
-        model=action.options,
-        name=action.name,
-        css_classes=["flat-dropdown"],
+    row.drop_down.props.expression = Gtk.PropertyExpression.new(
+        Option, expression=None, property_name="label"
     )
-    drop_down.connect("notify::selected-item", on_row_selected, action.status)
-    align_drop_down(drop_down)
-
-    emblem_box = Gtk.Box(width_request=16, name="emblem_box")
-    row.add_suffix(emblem_box)
-    row.add_suffix(drop_down)
-    emblem = create_emblem(action.status, action.status_detail or "")
-    action.connect("notify::status", on_status_changed, emblem_box)
-    if emblem:
-        emblem_box.append(emblem)
+    row.drop_down.props.model = action.options
+    row.drop_down.props.name = action.name
+    row.drop_down.connect("notify::selected-item", on_row_selected, action.status)
+    action.connect("notify::status", on_status_changed, row.emblem_box)
     action.bind_property(
-        "selected", drop_down, "selected", GObject.BindingFlags.SYNC_CREATE
+        "selected", row.drop_down, "selected", GObject.BindingFlags.SYNC_CREATE
     )
-    row.props.activatable_widget = drop_down
+    emblem = create_emblem(action.status, action.status_detail or "")
+    if emblem:
+        row.emblem_box.append(emblem)
     return row
 
 
 def create_button_group_row(
     action: Action,
     callback: Callable[[Gtk.Widget, str, str, Callable[[], None] | None], None],
-):
-    row = Adw.ActionRow(
-        title=action.title,
-        subtitle=action.description,
-        name=action.name,
-        focusable=False,
+) -> Adw.ActionRow:
+    row = ButtonGroupRow(
+        title=action.title, subtitle=action.description, name=action.name
     )
-    action_box = Gtk.Box(css_classes=["action-button-group"])
-    emblem_box = Gtk.Box(width_request=16)
+    action.connect("notify::status", on_status_changed, row.emblem_box, row.action_box)
     emblem = create_emblem(action.status)
-    action.connect("notify::status", on_status_changed, emblem_box, action_box)
     if emblem:
-        emblem_box.append(emblem)
-    row.add_suffix(emblem_box)
-    row.add_suffix(action_box)
+        row.emblem_box.append(emblem)
     prev = None
     for index, option in enumerate(action.options):
         option = cast("Option", option)
@@ -175,9 +151,9 @@ def create_button_group_row(
         if prev:
             button.set_group(prev)
         prev = button
-        action_box.append(button)
+        row.action_box.append(button)
         if index < len(action.options) - 1:
-            action_box.append(
+            row.action_box.append(
                 Gtk.Separator(
                     orientation=Gtk.Orientation.VERTICAL,
                     css_classes=["action-button"],
@@ -190,7 +166,7 @@ def create_button_group_row(
 def create_row(
     action: Action,
     callback: Callable[[Gtk.Widget, str, str, Callable[[], None] | None], None],
-):
+) -> Adw.ActionRow | Adw.ExpanderRow:
     """Create row widget for an action"""
 
     match len(action.options):

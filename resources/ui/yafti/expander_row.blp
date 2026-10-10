@@ -1,0 +1,14 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $YaftiExpanderRow : Adw.ExpanderRow {
+    [suffix]
+    Box emblem_box {
+        name: "emblem-box";
+        width-request: 16;
+    }
+    ListBox container {
+        selection-mode: none;
+        styles ["boxed-list", "sub-list"]
+    }
+}

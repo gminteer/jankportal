@@ -200,7 +200,7 @@ class Page(GObject.Object):
 
 def create_model(
     panic: Callable[[str], None], file_name: str = "/usr/share/yafti/yafti.yml"
-):
+) -> Gio.ListStore[Page]:
     """Parse YAFTI YML into Gio.ListStore"""
     try:
         with Path(file_name).open() as file:
