@@ -12,10 +12,23 @@ if TYPE_CHECKING:
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gtk  # noqa: E402
+gi.require_version("Vte", "3.91")
+from gi.repository import Adw, Gtk, Vte  # noqa: E402
+
+KEY_MAP = {
+    ecodes.BTN_SOUTH: b"\x0d",
+    ecodes.BTN_EAST: b"\x1b",
+    ecodes.BTN_WEST: b"Y",
+    ecodes.BTN_NORTH: b"N",
+    ecodes.BTN_SELECT: b"\x03",
+}
 
 
 def read_button(event: InputEvent, focus: Gtk.Widget, window: JankWindow):
+    if isinstance(focus, Vte.Terminal) and event.code in KEY_MAP:
+        focus.feed_child(KEY_MAP[event.code])
+        return
+
     match event.code:
         case ecodes.BTN_SOUTH:
             # south button = enter

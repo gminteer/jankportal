@@ -15,7 +15,8 @@ if TYPE_CHECKING:
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("WebKit", "6.0")
-from gi.repository import GLib, Gtk, WebKit  # noqa: E402
+gi.require_version("Vte", "3.91")
+from gi.repository import GLib, Gtk, Vte, WebKit  # noqa: E402
 
 
 class Horizontal(Enum):
@@ -30,11 +31,18 @@ class Vertical(Enum):
     DOWN = 1
 
 
-DirectionMap = {
+GtkDirectionMap = {
     Horizontal.LEFT: Gtk.DirectionType.LEFT,
     Horizontal.RIGHT: Gtk.DirectionType.RIGHT,
     Vertical.UP: Gtk.DirectionType.UP,
     Vertical.DOWN: Gtk.DirectionType.DOWN,
+}
+
+VteDirectionMap = {
+    Horizontal.LEFT: b"\x1b[D",
+    Horizontal.RIGHT: b"\x1b[C",
+    Vertical.UP: b"\x1b[A",
+    Vertical.DOWN: b"\x1b[B",
 }
 
 
@@ -69,16 +77,14 @@ class Axis:
         """Convert absolute value to float in range [-1, 1], clamp
         to zero if value falls within deadzone"""
         normalized = (value - self.center) / self.range
-        return (
-            normalized
-            if (normalized < -self._deadzone) or (normalized > self._deadzone)
-            else 0
-        )
+        if -self._deadzone < normalized < self._deadzone:
+            normalized = 0
+        return normalized
 
 
 class Direction:
     DEADZONE = 0.6
-    REPEAT_RATE = 0.5
+    REPEAT_RATE = 0.25
 
     def __init__(
         self,
@@ -86,74 +92,71 @@ class Direction:
         y_axis: Axis,
         window: JankWindow,
     ):
-        self._x_val = Horizontal(0)
-        self._y_val = Vertical(0)
         self._x_axis = x_axis
         self._y_axis = y_axis
+        self._x_signal = None
+        self._y_signal = None
         self._window = window
 
-    async def _repeat_move(self, direction: Horizontal | Vertical):
-        direction_val = (
-            self._x_val if isinstance(direction, Horizontal) else self._y_val
-        )
-        while direction == direction_val:
+    async def _repeat_signal_gtk(self, direction: Horizontal | Vertical):
+        while True:
             if not self._window.props.focus_visible:
                 self._window.props.focus_visible = True
-            self._window.emit("move-focus", DirectionMap[direction])
+            self._window.emit("move-focus", GtkDirectionMap[direction])
             await asyncio.sleep(self.REPEAT_RATE)
 
-    @property
-    def x(self):
-        return self._x_val
+    async def _repeat_signal_vte(self, direction: Horizontal | Vertical):
+        while True:
+            self._window.vte.feed_child(VteDirectionMap[direction])
+            await asyncio.sleep(self.REPEAT_RATE)
 
-    @x.setter
-    def x(self, value: int):
-        """Set x axis direction, start asynchronously sending direction signals
-        if x isn't centered"""
-
-        if value not in {item.value for item in Horizontal}:
-            raise ValueError(f"Invalid horziontal direction '{value}'")
-        if self._x_val != Horizontal(value):
-            self._x_val = Horizontal(value)
-            if self._x_val == Horizontal.HCENTER:
-                self._x_signal.cancel()
-                del self._x_signal
-                return
-            self._x_signal = asyncio.create_task(self._repeat_move(self.x))
-
-    @property
-    def y(self):
-        return self._y_val
-
-    @y.setter
-    def y(self, value: int):
-        """Set y axis direction, start asynchronously sending direction signals
-        if y isn't centered"""
-
-        if value not in {item.value for item in Vertical}:
-            raise ValueError(f"Invalid vertical direction '{value}'")
-        if self._y_val != Vertical(value):
-            self._y_val = Vertical(value)
-            if self._y_val == Vertical.VCENTER:
-                self._y_signal.cancel()
-                del self._y_signal
-                return
-            self._y_signal = asyncio.create_task(self._repeat_move(self.y))
-
-    def update(self, event: InputEvent) -> None:
+    def update(self, event: InputEvent, focus: Gtk.Widget) -> None:
         """Read evdev event and update direction"""
-
+        x = None
+        y = None
         match event.code:
             case ecodes.ABS_HAT0X:
-                self.x = event.value
+                x = event.value
             case ecodes.ABS_HAT0Y:
-                self.y = event.value
+                y = event.value
             case ecodes.ABS_X:
-                self.x = flatten(self._x_axis.normalize(event.value))
+                x = flatten(self._x_axis.normalize(event.value))
             case ecodes.ABS_Y:
-                self.y = flatten(self._y_axis.normalize(event.value))
+                y = flatten(self._y_axis.normalize(event.value))
             case _:
                 pass
+        if x == 0:
+            if self._x_signal:
+                self._x_signal.cancel()
+                self._x_signal = None
+            return
+        if x in [-1, 1]:
+            if not self._x_signal:
+                if isinstance(focus, Vte.Terminal):
+                    self._x_signal = asyncio.create_task(
+                        self._repeat_signal_vte(Horizontal(x))
+                    )
+                else:
+                    self._x_signal = asyncio.create_task(
+                        self._repeat_signal_gtk(Horizontal(x))
+                    )
+            return
+        if y == 0:
+            if self._y_signal:
+                self._y_signal.cancel()
+                self._y_signal = None
+            return
+        if y in [-1, 1]:
+            if not self._y_signal:
+                if isinstance(focus, Vte.Terminal):
+                    self._y_signal = asyncio.create_task(
+                        self._repeat_signal_vte(Vertical(y))
+                    )
+                else:
+                    self._y_signal = asyncio.create_task(
+                        self._repeat_signal_gtk(Vertical(y))
+                    )
+            return
 
 
 class Scroller:
@@ -161,10 +164,11 @@ class Scroller:
     DEADZONE = 0.1
     REPEAT_RATE = 0.02
 
-    def __init__(self, scroll_axis: Axis):
+    def __init__(self, scroll_axis: Axis, window: JankWindow):
         self._scroll_val = 0
         self._scroll_axis = scroll_axis
         self._scroll_signal = None
+        self._window = window
 
     async def _repeat_signal_gtk(self, scrollable: Gtk.ScrolledWindow):
         while True:

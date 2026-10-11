@@ -19,6 +19,7 @@ from .buttons import read_button
 if TYPE_CHECKING:
     from jankportal.window import JankWindow
 
+
 BTN_DOWN = 1
 BTN_UP = 0
 
@@ -99,25 +100,25 @@ class JoystickWrangler(GObject.Object):
         js = self._joystick
         # build analog helpers
         self.window.toast(f"Listening to '{js.name}' at {js.path}")
-        dev_cap = dict(js.capabilities().get(ecodes.EV_ABS, []))  # type: ignore
+        dev_cap = dict(js.capabilities().get(ecodes.EV_ABS, []))
         analog_x = Axis(
-            min=dev_cap[ecodes.ABS_X].min,  # type: ignore
-            max=dev_cap[ecodes.ABS_X].max,  # type: ignore
+            min=dev_cap[ecodes.ABS_X].min,
+            max=dev_cap[ecodes.ABS_X].max,
             deadzone=Direction.DEADZONE,
         )
         analog_y = Axis(
-            min=dev_cap[ecodes.ABS_Y].min,  # type: ignore
-            max=dev_cap[ecodes.ABS_Y].max,  # type: ignore
+            min=dev_cap[ecodes.ABS_Y].min,
+            max=dev_cap[ecodes.ABS_Y].max,
             deadzone=Direction.DEADZONE,
         )
 
         scroll = Axis(
-            min=dev_cap[ecodes.ABS_RY].min,  # type: ignore
-            max=dev_cap[ecodes.ABS_RY].max,  # type: ignore
+            min=dev_cap[ecodes.ABS_RY].min,
+            max=dev_cap[ecodes.ABS_RY].max,
             deadzone=Scroller.DEADZONE,
         )
         direction = Direction(analog_x, analog_y, self.window)
-        scroller = Scroller(scroll)
+        scroller = Scroller(scroll, self.window)
         try:
             async for event in cast("evdev.InputEvent", js.async_read_loop()):
                 if event.type == ecodes.EV_ABS:
@@ -129,7 +130,9 @@ class JoystickWrangler(GObject.Object):
                         ecodes.ABS_HAT0Y,
                     ]:
                         # X, Y, HAT0X, and HAT0Y = arrow keys
-                        direction.update(event)
+                        if not (focus := self.window.get_focus()):
+                            continue
+                        direction.update(event, focus)
                     if event.code == ecodes.ABS_RY:
                         # RY = scroll widget
                         if not (focus := self.window.get_focus()):

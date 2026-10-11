@@ -58,6 +58,7 @@ class JankWindow(Adw.ApplicationWindow):
     split_view: Adw.OverlaySplitView = Gtk.Template.Child()
     joystick_stack_nav: Gtk.Box = Gtk.Template.Child()
     joystick_main_nav: Gtk.Box = Gtk.Template.Child()
+    joystick_vte_nav: Gtk.Box = Gtk.Template.Child()
 
     def __init__(self, application: Adw.Application, settings: Gio.Settings):
         super().__init__(application=application)
@@ -84,6 +85,9 @@ class JankWindow(Adw.ApplicationWindow):
         self.vte.disconnect_by_func(self.on_contents_changed)
         self.vte.reset(clear_history=True, clear_tabstops=True)
         self.bottom_sheet.props.open = False
+        if self._joystick_wrangler.has_joystick:
+            self.joystick_stack_nav.props.visible = True
+            self.joystick_main_nav.props.visible = True
 
     @Gtk.Template.Callback()
     def on_keep_vte_open_clicked(self, button: Gtk.ToggleButton):
@@ -176,6 +180,9 @@ class JankWindow(Adw.ApplicationWindow):
 
         self.bottom_sheet.props.open = True
         self.vte.grab_focus()
+        if self._joystick_wrangler.has_joystick:
+            self.joystick_stack_nav.props.visible = False
+            self.joystick_main_nav.props.visible = False
 
     def command_runner(
         self,
@@ -251,6 +258,12 @@ class JankWindow(Adw.ApplicationWindow):
         self._joystick_wrangler.bind_property(
             "has_joystick",
             self.joystick_stack_nav,
+            "visible",
+            flags=GObject.BindingFlags.SYNC_CREATE,
+        )
+        self._joystick_wrangler.bind_property(
+            "has_joystick",
+            self.joystick_vte_nav,
             "visible",
             flags=GObject.BindingFlags.SYNC_CREATE,
         )

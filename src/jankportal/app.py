@@ -55,8 +55,6 @@ from .window import JankWindow  # noqa: E402
 
 
 class JankApplication(Adw.Application):
-    """Application"""
-
     def __init__(self):
         super().__init__(application_id=CFG.APP_ID)
         if not schema:
