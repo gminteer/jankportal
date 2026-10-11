@@ -4,6 +4,7 @@ import asyncio
 import sys
 import tempfile
 from importlib import resources
+from pathlib import Path
 from typing import cast
 
 import gi
@@ -51,6 +52,7 @@ with tempfile.NamedTemporaryFile(suffix=".ttf", delete=False) as temp:
     font_map = PangoCairo.FontMap.get_default()
     font_map.add_font_file(temp.name)
 
+# have to load in GTK resources and the embedded font before importing the window
 from .window import JankWindow  # noqa: E402
 
 
@@ -87,4 +89,6 @@ def main():
     app = JankApplication()
     policy = GLibEventLoopPolicy()
     asyncio.set_event_loop_policy(policy)  # type: ignore
-    return app.run(sys.argv)
+    return_code = app.run(sys.argv)
+    Path(temp.name).unlink()
+    return return_code
