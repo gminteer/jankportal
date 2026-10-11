@@ -1,20 +1,12 @@
 # Jank Portal
 
-A Clone of [Bazzite Portal](https://github.com/xXJSONDeruloXx/yafti-gtk), also using Python and GTK, but not directly based off of it. The project started mostly as an excuse to get back into Python, and learn a GUI toolkit that isn't Tkinter along the way. It's mostly functional, and incorporates a partially implemented wrapper around `rpm-ostree` and `bazzite-rollback-helper` in the deployments tab, but it's definitely not ready for prime time yet.
+A Clone of [Bazzite Portal](https://github.com/xXJSONDeruloXx/yafti-gtk), also using Python and GTK, but not directly based off of it. The project started mostly as an excuse to get back into Python, and learn a GUI toolkit that isn't Tkinter along the way. It's more or less functional, and incorporates a wrapper around `rpm-ostree` and `bazzite-rollback-helper` for common tasks (in the `Deployments` tab), making it fairly close to being ready for prime time.
 
 ## Things it does that Portal don't
 
-- A simple wrapper around wrangling deployments, that lets you pin/unpin `rpm-ostree` images, rebase to a different image/tag (with constraints, it won't let you jump to a different desktop or add/remove the nvidia driver currently), and/or rebase to a specific version you currently have deployed.
+- A simple wrapper around wrangling deployments, that lets you pin/unpin `rpm-ostree` images, rebase to a different image/tag (with constraints, it won't let you jump to a different desktop or add/remove the nvidia driver without changing settings), and/or rebase to a specific version you currently have deployed.
 
-- Joystick input support. Currently fairly janky: the joystick needs to have been plugged in at program launch, and it doesn't handle disconnect/connect events at all, and there's no UI hints on the controller bindings yet:
-  - Left stick/dpad = move selected widget
-  - Left bumper is shift-tab, right bumper is tab
-  - South button selects
-  - East button cancels
-  - North button selects search entry (in the hopes that will trigger on-screen keyboard)
-  - Left/right triggers swap to previous/next page
-  - Right stick Y-axis scrolls
-  - Start button opens about menu
+- Joystick input support. Currently a bit janky: it doesn't even pretend to handle multiple joysticks, but relative to last time I changed the README it does most of the things I called out (it handles connecting/disconnecting a joystick, it shows joystick bindings in the UI)
 
 - Embeds a terminal widget instead of running an external terminal
 
