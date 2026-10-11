@@ -37,7 +37,7 @@ def read_button(event: InputEvent, focus: Gtk.Widget, window: JankWindow):
 
             expander = focus.get_ancestor(Adw.ExpanderRow)
             if expander:
-                expander.props.expanded = True
+                expander.props.expanded = not expander.props.expanded
             return
 
         case ecodes.BTN_EAST:
