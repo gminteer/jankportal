@@ -43,8 +43,7 @@ class CustomBuildHook(BuildHookInterface[Any]):
         # compile blueprints
         compiled_ui_files: list[Path] = []
         for blp_path in RESOURCE_DIR.rglob("*.blp"):
-            relative_path = blp_path.relative_to(RESOURCE_DIR)
-            ui_path = RESOURCE_DIR / relative_path.with_suffix(".ui")
+            ui_path = blp_path.with_suffix(".ui")
 
             print(f"Compiling blueprint: {blp_path} -> {ui_path}")
             subprocess.run(
@@ -105,7 +104,7 @@ class CustomBuildHook(BuildHookInterface[Any]):
         )
 
         # trash temporary files
-        (RESOURCE_DIR / "gresource.xml").unlink(missing_ok=True)
-        (RESOURCE_DIR / "gschemas.compiled").unlink(missing_ok=True)
+        (RESOURCE_DIR / "gresource.xml").unlink()
+        (RESOURCE_DIR / "gschemas.compiled").unlink()
         for ui_file in compiled_ui_files:
-            ui_file.unlink(missing_ok=True)
+            ui_file.unlink()
