@@ -8,10 +8,11 @@ import asyncio
 from typing import TYPE_CHECKING, cast
 
 import evdev
-import pyudev
 from evdev import ecodes
 from gi.repository import GObject
-from pyudev.glib import MonitorObserver
+
+from jankportal.vendor import pyudev
+from jankportal.vendor.pyudev.glib import MonitorObserver
 
 from .analog import Axis, Direction, Scroller
 from .buttons import read_button

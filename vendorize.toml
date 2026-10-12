@@ -1,0 +1,4 @@
+target = "src/jankportal/vendor"
+packages = [
+    "pyudev",
+]
