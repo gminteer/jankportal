@@ -40,7 +40,7 @@ with resources.as_file(resources.files(CFG.APP_NAME).joinpath("assets")) as asse
         trusted=False,
     )
     schema = schema_source.lookup(CFG.APP_ID, recursive=False)
-    for font in asset_path.rglob("*.ttf"):
+    for font in asset_path.rglob("*.[ot]tf"):
         font_map.add_font_file(str(font))
 
 # have to load in GTK resources before importing the window

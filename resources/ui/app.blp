@@ -4,7 +4,7 @@ using Vte 3.91;
 
 template $JankWindow : Adw.ApplicationWindow {
     default-width: 1200;
-    default-height: 600;
+    default-height: 800;
     title: _("Main Window");
 
     content: Adw.ToolbarView {
@@ -145,6 +145,7 @@ template $JankWindow : Adw.ApplicationWindow {
                 };
 
                 sheet:  Adw.ToolbarView {
+                    vexpand: true;
                     [top]
                     Adw.HeaderBar sheet_header{
                         show-end-title-buttons: false;
@@ -154,14 +155,14 @@ template $JankWindow : Adw.ApplicationWindow {
                             spacing: 12;
                             halign: center;
 
-                            Label command_status {
-                                label: _("");
-                                styles ["heading"]
-                            }
-
                             Label command_label {
                                 label: _("");
                                 ellipsize: end;
+                                styles ["heading"]
+                            }
+
+                            Label command_status {
+                                label: _("");
                                 styles ["heading"]
                             }
                         };
@@ -263,16 +264,11 @@ template $JankWindow : Adw.ApplicationWindow {
                     ScrolledWindow {
                         propagate-natural-height: true;
 
-                        child: Adw.ClampScrollable {
-                            orientation: vertical;
-                            unit: sp;
-                            maximum-size: 400;
+                        Vte.Terminal vte {
+                            font-desc: "ComicShannsMono Nerd Font Regular 12";
+                            height-request: 525;
                             vexpand: true;
-
-                            Vte.Terminal vte {
-                                vexpand: true;
-                            }
-                        };
+                        }
                     }
                 };
             }

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from typing import Any
 
 import gi
 
@@ -111,6 +112,7 @@ class JankWindow(Adw.ApplicationWindow):
                 "--config /usr/share/ublue-os/bazzite/fastfetch.jsonc "
                 "--color $(/usr/libexec/bazzite-bling-fastfetch)"
             ),
+            self.keep_vte_open.activate,
         )
         about = Adw.AboutDialog(
             application_name=CFG.APP_TITLE,
@@ -137,7 +139,7 @@ class JankWindow(Adw.ApplicationWindow):
             self._vte_done_callback = None
 
         self._vte_is_running = False
-        title_prefix = "[Exited]" if status == 0 else f"[Exited with code {status}]"
+        title_prefix = "[Exited]" if status == 0 else f"[Exit code {status}]"
         if self.keep_vte_open.props.active:
             self.command_status.props.label = title_prefix
             return
@@ -190,7 +192,7 @@ class JankWindow(Adw.ApplicationWindow):
         self,
         title: str,
         script: str,
-        vte_done_callback: Callable[[], None] | None = None,
+        vte_done_callback: Callable[[], Any] | None = None,
     ) -> None:
         """Pass script to terminal widget"""
         self._vte_done_callback = vte_done_callback

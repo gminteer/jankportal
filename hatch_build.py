@@ -42,7 +42,7 @@ class CustomBuildHook(BuildHookInterface[Any]):
             file.write("\n")
 
         # copy fonts
-        for font_path in RESOURCE_DIR.rglob("*.ttf"):
+        for font_path in RESOURCE_DIR.rglob("*.[ot]tf"):
             font_path.copy_into(OUTPUT_DIR)
 
         # compile blueprints
