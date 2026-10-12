@@ -106,7 +106,11 @@ class JankWindow(Adw.ApplicationWindow):
     def on_about_clicked(self, button: Gtk.Button):
         self.command_runner(
             "About System",
-            "/usr/bin/fastfetch --config /usr/share/ublue-os/bazzite/fastfetch.jsonc --color $(/usr/libexec/bazzite-bling-fastfetch)",
+            (
+                "/usr/bin/fastfetch "
+                "--config /usr/share/ublue-os/bazzite/fastfetch.jsonc "
+                "--color $(/usr/libexec/bazzite-bling-fastfetch)"
+            ),
         )
         about = Adw.AboutDialog(
             application_name=CFG.APP_TITLE,

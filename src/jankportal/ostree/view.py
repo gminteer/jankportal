@@ -250,9 +250,6 @@ class OSTreeView:
         self.page.image.connect("notify::selected-item", self.on_image_selected)
         self.page.tag.connect("notify::selected-item", self.on_tag_selected)
         placeholder = cast("Adw.Bin", self.window.stack.get_child_by_name("ostree"))
-        button = Gtk.Button(label="bruh")
-        button.connect("clicked", self.on_bruh_clicked)
-        self.page.container.append(button)
         placeholder.props.child = self.page
 
     @property
@@ -264,9 +261,6 @@ class OSTreeView:
     @property
     def selected_tag(self):
         return cast("Gtk.StringObject", self.page.tag.get_selected_item()).get_string()
-
-    def on_bruh_clicked(self, button: Gtk.Button):
-        self.window.command_runner(title="bruh", script="brh")
 
     def on_settings_changed(self, settings: Gio.Settings, key: str):
         if key in ["allow-gnome", "allow-nvidia"]:
