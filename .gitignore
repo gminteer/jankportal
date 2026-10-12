@@ -13,6 +13,4 @@ wheels/
 TODO.md
 
 # Build artifacts
-src/jankportal/*.gresource
-src/jankportal/_config.py
-src/jankportal/gschemas.compiled
+src/jankportal/assets/

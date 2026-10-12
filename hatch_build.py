@@ -22,7 +22,8 @@ class CustomBuildHook(BuildHookInterface[Any]):
         APP_PATH = "/" + APP_ID.replace(".", "/")
         APP_NAME = cast("str", CFG["project"]["name"])
         RESOURCE_DIR = Path("resources")
-        OUTPUT_DIR = Path(f"src/{APP_NAME}")
+        OUTPUT_DIR = Path(f"src/{APP_NAME}/assets")
+        OUTPUT_DIR.mkdir(exist_ok=True)
 
         target = OUTPUT_DIR / "_config.py"
         print(f"Compiling package metadata into: {target}")
@@ -39,6 +40,10 @@ class CustomBuildHook(BuildHookInterface[Any]):
             file.write(f'BUG_TRACKER = "{CFG["project"]["urls"]["Bug Tracker"]}"\n')
             file.write(f'GTK_LICENSE = "{CFG["tool"]["gtk"]["license"]}"\n')
             file.write("\n")
+
+        # copy fonts
+        for font_path in RESOURCE_DIR.rglob("*.ttf"):
+            font_path.copy_into(OUTPUT_DIR)
 
         # compile blueprints
         compiled_ui_files: list[Path] = []
@@ -70,10 +75,9 @@ class CustomBuildHook(BuildHookInterface[Any]):
             *RESOURCE_DIR.rglob("*.ui"),
             *RESOURCE_DIR.rglob("*.css"),
             *RESOURCE_DIR.rglob("*.svg"),
-            *RESOURCE_DIR.rglob("*.ttf"),
         ]
 
-        SKIP_XML_PREPROCESS = [".css", ".ttf"]
+        SKIP_XML_PREPROCESS = [".css"]
         for file_path in resources:
             relative_path = file_path.relative_to(RESOURCE_DIR)
             attrib = (

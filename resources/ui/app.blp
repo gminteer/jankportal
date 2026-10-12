@@ -149,10 +149,21 @@ template $JankWindow : Adw.ApplicationWindow {
                     Adw.HeaderBar sheet_header{
                         show-end-title-buttons: false;
 
-                        title-widget: Label command_label {
-                            label: _("");
-                            ellipsize: end;
-                            styles ["heading"]
+                        title-widget: Box {
+                            orientation: horizontal;
+                            spacing: 12;
+                            halign: center;
+
+                            Label command_status {
+                                label: _("");
+                                styles ["heading"]
+                            }
+
+                            Label command_label {
+                                label: _("");
+                                ellipsize: end;
+                                styles ["heading"]
+                            }
                         };
 
                         [end]
@@ -179,6 +190,17 @@ template $JankWindow : Adw.ApplicationWindow {
                             }
                             Label {
                                 label: _("Arrow keys");
+                            }
+                        }
+                        Box {
+                            orientation: horizontal;
+                            spacing: 6;
+                            Label {
+                                styles ["button-prompt"]
+                                label: _("⇵");
+                            }
+                            Label {
+                                label: _("Scroll");
                             }
                         }
                         Box {

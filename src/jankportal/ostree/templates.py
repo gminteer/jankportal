@@ -2,7 +2,7 @@
 
 import gi
 
-from jankportal._config import APP_PATH
+from jankportal.assets._config import APP_PATH
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")

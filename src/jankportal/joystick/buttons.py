@@ -38,7 +38,7 @@ def read_button(event: InputEvent, focus: Gtk.Widget, window: JankWindow):
             expander = focus.get_ancestor(Adw.ExpanderRow)
             if expander:
                 expander.props.expanded = not expander.props.expanded
-            return
+                return
 
         case ecodes.BTN_EAST:
             # east button = escape
@@ -97,8 +97,7 @@ def read_button(event: InputEvent, focus: Gtk.Widget, window: JankWindow):
             if not (page := window.stack.get_visible_child()):
                 return
             if not (next_page := page.get_next_sibling()):
-                next_page = window.stack.get_first_child()
-                if not next_page:
+                if not (next_page := window.stack.get_first_child()):
                     return
                 # search results are the first page in the stack
                 next_page = next_page.get_next_sibling()

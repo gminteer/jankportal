@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 import gi
 
-from . import _config as CFG
+from .assets import _config as CFG
 from .joystick.loop import JoystickWrangler
 from .lib import find_child_by_name
 
@@ -52,6 +52,7 @@ class JankWindow(Adw.ApplicationWindow):
     bottom_sheet: Adw.BottomSheet = Gtk.Template.Child()
     stack: Adw.ViewStack = Gtk.Template.Child()
     command_label: Gtk.Label = Gtk.Template.Child()
+    command_status: Gtk.Label = Gtk.Template.Child()
     search: Gtk.SearchEntry = Gtk.Template.Child()
     keep_vte_open: Gtk.ToggleButton = Gtk.Template.Child()
     overlay: Adw.ToastOverlay = Gtk.Template.Child()
@@ -105,12 +106,8 @@ class JankWindow(Adw.ApplicationWindow):
     def on_about_clicked(self, button: Gtk.Button):
         self.command_runner(
             "About System",
-            "/usr/bin/bash --noprofile --norc -lc\
-            /usr/bin/fastfetch\
-                -c /usr/share/ublue-os/bazzite/fastfetch.jsonc\
-                --color $(/usr/libexec/bazzite-bling-fastfetch)",
+            "/usr/bin/fastfetch --config /usr/share/ublue-os/bazzite/fastfetch.jsonc --color $(/usr/libexec/bazzite-bling-fastfetch)",
         )
-        self.keep_vte_open.activate()
         about = Adw.AboutDialog(
             application_name=CFG.APP_TITLE,
             developer_name=CFG.AUTHOR,
@@ -138,22 +135,22 @@ class JankWindow(Adw.ApplicationWindow):
         self._vte_is_running = False
         title_prefix = "[Exited]" if status == 0 else f"[Exited with code {status}]"
         if self.keep_vte_open.props.active:
-            self.command_label.props.label = f"{title_prefix}, unpin to close"
+            self.command_status.props.label = title_prefix
             return
 
-        self.command_label.props.label = f"{title_prefix}, hiding in {DELAY}s…"
+        self.command_status.props.label = f"{title_prefix}, hiding in {DELAY}s…"
 
         countdown = DELAY
 
         def delayed_close():
             if self.keep_vte_open.props.active:
-                self.command_label.props.label = f"{title_prefix}, unpin to close"
+                self.command_status.props.label = title_prefix
                 return GLib.SOURCE_REMOVE
 
             nonlocal countdown
             countdown -= 1
             if countdown:
-                self.command_label.props.label = (
+                self.command_status.props.label = (
                     f"{title_prefix}, hiding in {countdown}s…"
                 )
                 return GLib.SOURCE_CONTINUE
@@ -173,6 +170,7 @@ class JankWindow(Adw.ApplicationWindow):
             return
 
         self._vte_is_running = True
+        self.command_status.props.label = "[Running]"
         self.vte.connect("contents-changed", self.on_contents_changed)
 
     def on_contents_changed(self, terminal: Vte.Terminal):
