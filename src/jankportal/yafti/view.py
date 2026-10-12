@@ -46,9 +46,9 @@ def create_pages(
     for screen in model:
         # Append actions to everything list
         all_actions.splice(
-            all_actions.get_n_items(),
+            len(all_actions),
             0,
-            [screen.actions.get_item(i) for i in range(screen.actions.get_n_items())],
+            [screen.actions.get_item(i) for i in range(len(all_actions))],
         )
         page = templates.Page()
         page.description.props.label = screen.descrption
