@@ -24,6 +24,7 @@ Repository = "https://github.com/gminteer/jankportal.git"
 dev = [
     "hatchling>=1.32.4",
     "pygobject-stubs>=2.17.0",
+    "tomli-w>=1.2.0",
     "uv-dynamic-versioning>=0.14.1",
 ]
 
@@ -31,7 +32,7 @@ dev = [
 jankportal = "jankportal.app:main"
 
 [build-system]
-requires = ["hatchling", "uv-dynamic-versioning"]
+requires = ["hatchling", "tomli-w", "uv-dynamic-versioning"]
 build-backend = "hatchling.build"
 
 [tool.gtk]
@@ -109,6 +110,7 @@ dirty = true
 # (don't violate this constraint without dealing with it)
 build-requires = [
     "dep:pkg:rpm/fedora/blueprint-compiler@>=0.20.4",
+    "dep:pkg:rpm/fedora/desktop-file-utils@>=0.28",
     "dep:pkg:rpm/fedora/glib2-devel@>=2.88.3",
 ]
 host-requires = [

@@ -32,6 +32,11 @@ Requires:       %{pkg_requires}
 %pyproject_install
 # Automatically extracted from wheel
 %pyproject_save_files -l %{name}
+install -d %{buildroot}%{_datadir}/applications
+find %{_builddir} -name "*.png"
+mkdir -p %{buildroot}%{_datadir}/icons/hicolor/256x256/apps/
+install -m 644 src/%{name}/assets/%{name}.png %{buildroot}%{_datadir}/icons/hicolor/256x256/apps/%{name}.png
+desktop-file-install --dir=%{buildroot}%{_datadir}/applications src/%{name}/assets/%{name}.desktop
 
 
 %check
@@ -40,6 +45,8 @@ Requires:       %{pkg_requires}
 
 %files -n %{name} -f %{pyproject_files}
 %{_bindir}/%{name}
+%{_datadir}/applications/%{name}.desktop
+%{_datadir}/icons/hicolor/256x256/apps/%{name}.png
 
 
 %changelog

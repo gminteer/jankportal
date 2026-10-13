@@ -116,6 +116,7 @@ class JankWindow(Adw.ApplicationWindow):
         )
         about = Adw.AboutDialog(
             application_name=CFG.APP_TITLE,
+            application_icon="logo",
             developer_name=CFG.AUTHOR,
             comments=CFG.DESCRIPTION,
             version=version(CFG.APP_NAME),

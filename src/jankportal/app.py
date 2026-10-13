@@ -3,6 +3,7 @@
 import asyncio
 import sys
 from importlib import resources
+from typing import cast
 
 import gi
 from gi.events import GLibEventLoopPolicy
@@ -42,6 +43,12 @@ with resources.as_file(resources.files(CFG.APP_NAME).joinpath("assets")) as asse
     schema = schema_source.lookup(CFG.APP_ID, recursive=False)
     for font in asset_path.rglob("*.[ot]tf"):
         font_map.add_font_file(str(font))
+
+# tell IconTheme we got an icon
+icon_theme = Gtk.IconTheme.get_for_display(
+    cast("Gdk.Display", Gdk.Display.get_default())
+)
+icon_theme.add_resource_path(CFG.APP_PATH)
 
 # have to load in GTK resources before importing the window
 from .window import JankWindow  # noqa: E402
