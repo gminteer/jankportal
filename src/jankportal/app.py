@@ -55,6 +55,8 @@ from .window import JankWindow  # noqa: E402
 
 
 class JankApplication(Adw.Application):
+    __gtype_name__ = "JankApplication"
+
     def __init__(self):
         super().__init__(application_id=CFG.APP_ID)
         if not schema:
@@ -86,5 +88,6 @@ class JankApplication(Adw.Application):
 def main():
     app = JankApplication()
     policy = GLibEventLoopPolicy()
+    # this is cursed and deprecated, but it'll work until Python 3.16
     asyncio.set_event_loop_policy(policy)  # type: ignore
     return app.run(sys.argv)
