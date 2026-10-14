@@ -116,6 +116,6 @@ build-requires = [
 host-requires = [
     "dep:pkg:rpm/fedora/python3-gobject@>=3.56.3",
     "dep:pkg:rpm/fedora/libadwaita@>=1.9.4",
-    "dep:pkg:rpm/fedora/vte-2.91-gtk4@>=0.84.1",
+    "dep:pkg:rpm/fedora/vte291-gtk4@>=0.84.1",
     "dep:pkg:rpm/fedora/webkitgtk6.0@>=2.54.0",
 ]
