@@ -82,6 +82,7 @@ class JankWindow(Adw.ApplicationWindow):
         self.vte.connect("child-exited", self.on_child_exited)
         self.search.set_key_capture_widget(self)
         self._vte_is_running = False
+        self.props.icon_name = "logo"
 
     def _close_vte(self):
         self.vte.disconnect_by_func(self.on_contents_changed)
