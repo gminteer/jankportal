@@ -31,6 +31,8 @@ class Vertical(Enum):
     DOWN = 1
 
 
+DIRECTION = Horizontal, Vertical
+
 GtkDirectionMap = {
     Horizontal.LEFT: Gtk.DirectionType.LEFT,
     Horizontal.RIGHT: Gtk.DirectionType.RIGHT,
@@ -92,10 +94,8 @@ class Direction:
         y_axis: Axis,
         window: JankWindow,
     ):
-        self._x_axis = x_axis
-        self._y_axis = y_axis
-        self._x_signal = None
-        self._y_signal = None
+        self._axes = x_axis, y_axis
+        self._signals: list[None | asyncio.Task[None]] = [None, None]
         self._window = window
 
     async def _repeat_signal_gtk(self, direction: Horizontal | Vertical):
@@ -120,43 +120,30 @@ class Direction:
             case ecodes.ABS_HAT0Y:
                 y = event.value
             case ecodes.ABS_X:
-                x = flatten(self._x_axis.normalize(event.value))
+                x = flatten(self._axes[0].normalize(event.value))
             case ecodes.ABS_Y:
-                y = flatten(self._y_axis.normalize(event.value))
+                y = flatten(self._axes[1].normalize(event.value))
             case _:
                 pass
-        if x == 0:
-            if self._x_signal:
-                self._x_signal.cancel()
-                self._x_signal = None
-            return
-        if x in [-1, 1]:
-            if not self._x_signal:
-                if isinstance(focus, Vte.Terminal):
-                    self._x_signal = asyncio.create_task(
-                        self._repeat_signal_vte(Horizontal(x))
-                    )
-                else:
-                    self._x_signal = asyncio.create_task(
-                        self._repeat_signal_gtk(Horizontal(x))
-                    )
-            return
-        if y == 0:
-            if self._y_signal:
-                self._y_signal.cancel()
-                self._y_signal = None
-            return
-        if y in [-1, 1]:
-            if not self._y_signal:
-                if isinstance(focus, Vte.Terminal):
-                    self._y_signal = asyncio.create_task(
-                        self._repeat_signal_vte(Vertical(y))
-                    )
-                else:
-                    self._y_signal = asyncio.create_task(
-                        self._repeat_signal_gtk(Vertical(y))
-                    )
-            return
+
+        for i, val in enumerate((x, y)):
+            signal = self._signals[i]
+            if val == 0:
+                if signal:
+                    signal.cancel()
+                    self._signals[i] = None
+                return
+            if val in [-1, 1]:
+                if not signal:
+                    if isinstance(focus, Vte.Terminal):
+                        self._signals[i] = asyncio.create_task(
+                            self._repeat_signal_vte(DIRECTION[i](val))
+                        )
+                    else:
+                        self._signals[i] = asyncio.create_task(
+                            self._repeat_signal_gtk(DIRECTION[i](val))
+                        )
+                return
 
 
 class Scroller:
