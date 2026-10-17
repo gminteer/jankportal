@@ -65,7 +65,7 @@ class Axis:
     def center(self):
         """Midpoint of analog axis"""
         if self._center is None:
-            self._center = self._min + self._max // 2
+            self._center = (self._min + self._max) // 2
         return self._center
 
     @property
