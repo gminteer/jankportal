@@ -36,8 +36,8 @@ At some point I'll start actually putting up releases, but until then:
 - [hatchling](https://hatch.pypa.io/latest/) - Because I need a build hook and `uv`'s default backend doesn't have them
 - [PyGObject](https://pygobject.gnome.org/) - Python bindings for [GTK4](https://docs.gtk.org/gtk4/overview.html) and [Libadwaita](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/), which are surprisingly decent
 - [Blueprint](https://gnome.pages.gitlab.gnome.org/blueprint-compiler/) - Markup for GTK4 interfaces, I just wish the blueprint guy went further and I could use Blueprints at runtime with tag strings or something.
-- [GNOME VTE library](https://gitlab.gnome.org/GNOME/vte) - Virtual terminal component, because embedding a terminal feels a lot slicker than running `$DEFAULT_TERMINAL`
-- [WebKitGTK](https://webkitgtk.org/), [Python-Markdown](https://python-markdown.github.io/), and [github-markdown-css](https://cdnjs.com/libraries/github-markdown-css) - WebKit component, the easiest way to show markdown in a GTK app is converting to HTML and embedding a WebView?
+- [GNOME VTE library](https://gitlab.gnome.org/GNOME/vte) - Virtual terminal component, embedding a terminal feels a lot slicker than running `$DEFAULT_TERMINAL`
+- [WebKitGTK](https://webkitgtk.org/), [Python-Markdown](https://python-markdown.github.io/), and [github-markdown-css](https://cdnjs.com/libraries/github-markdown-css) - The easiest way to show markdown in a GTK app is converting to HTML and embedding a WebView?
 - [PyYAML](https://pyyaml.org/) - Read YAML files
 - [tomli-w](https://github.com/hukkin/tomli-w) - Write TOML files (kind of surprised the built-in tomllib is only a reader)
 
