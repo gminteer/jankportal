@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, cast
 
 import evdev
 from evdev import ecodes
-from gi.repository import GObject
 
 from jankportal.vendor import pyudev
 from jankportal.vendor.pyudev.glib import MonitorObserver
@@ -20,6 +19,7 @@ from .buttons import read_button
 if TYPE_CHECKING:
     from jankportal.window import JankWindow
 
+from gi.repository import GObject
 
 BTN_DOWN = 1
 BTN_UP = 0
@@ -49,8 +49,8 @@ class JoystickWrangler(GObject.Object):
     def __init__(self, window: JankWindow):
         super().__init__()
         self.window = window
-        self._joystick = None
-
+        self._joysticks: list[evdev.InputDevice] = []
+        self._joystick_loops: dict[str, asyncio.Task[None]] = {}
         context = pyudev.Context()
 
         for device in context.list_devices(subsystem="input", ID_INPUT_JOYSTICK="1"):
@@ -59,11 +59,14 @@ class JoystickWrangler(GObject.Object):
                 and "event" in device.device_node
                 and is_joystick(device.device_node)
             ):
-                self._joystick = evdev.InputDevice(device.device_node)
-                self._joystick_pump = asyncio.create_task(self._read_joystick())
-                break
-        if not self._joystick:
+                self._joysticks.append(evdev.InputDevice(device.device_node))
+        if len(self._joysticks) < 1:
             self.window.toast("No joysticks detected")
+        else:
+            for joystick in self._joysticks:
+                self._joystick_loops[joystick.path] = asyncio.create_task(
+                    self._read_joystick(joystick)
+                )
         self._monitor = pyudev.Monitor.from_netlink(context)
         self._monitor.filter_by(subsystem="input")
         self._observer = MonitorObserver(self._monitor)
@@ -71,37 +74,47 @@ class JoystickWrangler(GObject.Object):
 
     @GObject.Property(type=bool, default=False)
     def has_joystick(self):
-        return self._joystick is not None
+        return len(self._joysticks) > 0
 
     def on_device_event(self, observer: MonitorObserver, device: pyudev.Device):
         match device.action:
             case val if (
                 val == "add"
-                and not self._joystick
                 and device.device_node
+                and "event" in device.device_node
                 and is_joystick(device.device_node)
             ):
-                self._joystick = evdev.InputDevice(device.device_node)
-                self._joystick_pump = asyncio.create_task(self._read_joystick())
-                self.notify("has_joystick")
+                joystick = evdev.InputDevice(device.device_node)
+                self._joysticks.append(joystick)
+                self._joystick_loops[joystick.path] = asyncio.create_task(
+                    self._read_joystick(joystick)
+                )
+                if len(self._joysticks) == 1:
+                    self.notify("has_joystick")
 
             case val if (
                 val == "remove"
-                and isinstance(self._joystick, evdev.InputDevice)
-                and self._joystick.path == device.device_node
+                and device.device_node
+                and device.device_node in self._joystick_loops
             ):
-                self.window.toast(f"Joystick '{self._joystick.name}' disconnected")
-                self._joystick_pump.cancel()
-                self._joystick_pump = None
-                self._joystick = None
-                self.notify("has_joystick")
+                count = 0
+                for i, joystick in enumerate(self._joysticks):
+                    if joystick.path == device.device_node:
+                        self.window.toast(f"Joystick '{joystick.name}' disconnected")
+                        self._joystick_loops[device.device_node].cancel()
+                        del self._joystick_loops[device.device_node]
+                        del self._joysticks[i]
+                        count += 1
+                        break
+                assert count == 1
+                if len(self._joysticks) == 0:
+                    self.notify("has_joystick")
 
-    async def _read_joystick(self):
+    async def _read_joystick(self, joystick: evdev.InputDevice):
         """read evdev events from a joystick and duct tape them to GTK4"""
-        js = self._joystick
         # build analog helpers
-        self.window.toast(f"Listening to '{js.name}' at {js.path}")
-        dev_cap = dict(js.capabilities().get(ecodes.EV_ABS, []))
+        self.window.toast(f"Listening to '{joystick.name}' at {joystick.path}")
+        dev_cap = dict(joystick.capabilities().get(ecodes.EV_ABS, []))
         analog_x = Axis(
             min=dev_cap[ecodes.ABS_X].min,
             max=dev_cap[ecodes.ABS_X].max,
@@ -121,7 +134,7 @@ class JoystickWrangler(GObject.Object):
         direction = Direction(analog_x, analog_y, self.window)
         scroller = Scroller(scroll, self.window)
         try:
-            async for event in cast("evdev.InputEvent", js.async_read_loop()):
+            async for event in cast("evdev.InputEvent", joystick.async_read_loop()):
                 if event.type == ecodes.EV_ABS:
                     # analog inputs
                     if event.code in [

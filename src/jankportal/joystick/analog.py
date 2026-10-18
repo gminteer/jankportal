@@ -48,7 +48,7 @@ VteDirectionMap = {
 }
 
 
-def flatten(value: float):
+def round_away(value: float):
     """Flatten normalized float to [-1, 0, 1]"""
     return math.floor(value) if value < 0 else math.ceil(value) if value > 0 else 0
 
@@ -120,9 +120,9 @@ class Direction:
             case ecodes.ABS_HAT0Y:
                 y = event.value
             case ecodes.ABS_X:
-                x = flatten(self._axes[0].normalize(event.value))
+                x = round_away(self._axes[0].normalize(event.value))
             case ecodes.ABS_Y:
-                y = flatten(self._axes[1].normalize(event.value))
+                y = round_away(self._axes[1].normalize(event.value))
             case _:
                 pass
 
@@ -148,7 +148,7 @@ class Direction:
 
 class Scroller:
     STEP = 25
-    DEADZONE = 0.1
+    DEADZONE = 0.2
     REPEAT_RATE = 0.02
 
     def __init__(self, scroll_axis: Axis, window: JankWindow):
@@ -168,7 +168,7 @@ class Scroller:
 
     async def _repeat_signal_webview(self, webview: WebKit.WebView):
         def callback(webview: WebKit.WebView, result: Any):
-            # webkit gets grumpy if you don't _finish javascript evals
+            # the webview gets grumpy if you don't finish javascript evals
             try:
                 _value = webview.evaluate_javascript_finish(result)
             except GLib.Error as error:
@@ -184,9 +184,10 @@ class Scroller:
 
     def update(self, event: InputEvent, focus: Gtk.Widget):
         self._scroll_val = int(self._scroll_axis.normalize(event.value) * self.STEP)
-        if self._scroll_val == 0 and self._scroll_signal:
-            self._scroll_signal.cancel()
-            self._scroll_signal = None
+        if self._scroll_val == 0:
+            if self._scroll_signal:
+                self._scroll_signal.cancel()
+                self._scroll_signal = None
             return
 
         if isinstance(focus, WebKit.WebView) and not self._scroll_signal:
