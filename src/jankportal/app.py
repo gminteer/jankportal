@@ -24,23 +24,24 @@ from gi.repository import (  # noqa: E402
 )
 
 # load resources
-resource_blob = (
-    resources.files(CFG.APP_NAME)
-    .joinpath(f"assets/{CFG.APP_NAME}.gresource")
-    .read_bytes()
+resource = Gio.Resource.new_from_data(
+    GLib.Bytes.new(
+        resources.files(CFG.APP_NAME)
+        .joinpath(f"assets/{CFG.APP_NAME}.gresource")
+        .read_bytes()
+    )
 )
-resource = Gio.Resource.new_from_data(GLib.Bytes.new(resource_blob))
 Gio.resources_register(resource)
 
 # load fonts and settings schema
 font_map = PangoCairo.FontMap.get_default()
 with resources.as_file(resources.files(CFG.APP_NAME).joinpath("assets")) as asset_path:
-    schema_source = Gio.SettingsSchemaSource.new_from_directory(
+    schema = Gio.SettingsSchemaSource.new_from_directory(
         str(asset_path),
         parent=Gio.SettingsSchemaSource.get_default(),
         trusted=False,
-    )
-    schema = schema_source.lookup(CFG.APP_ID, recursive=False)
+    ).lookup(CFG.APP_ID, recursive=False)
+
     for font in asset_path.rglob("*.[ot]tf"):
         font_map.add_font_file(str(font))
 
@@ -79,15 +80,18 @@ class JankApplication(Adw.Application):
                 provider=css,
                 priority=Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
             )
+
         win = JankWindow(application=self, settings=self.settings)
+
         self._async_init = asyncio.create_task(win.initialize())
         self._async_init.add_done_callback(self._async_cleanup)
+
         win.present()
 
 
 def main():
+    # this is deprecated, but it'll work until Python 3.16
+    asyncio.set_event_loop_policy(GLibEventLoopPolicy())  # type: ignore
+
     app = JankApplication()
-    policy = GLibEventLoopPolicy()
-    # this is cursed and deprecated, but it'll work until Python 3.16
-    asyncio.set_event_loop_policy(policy)  # type: ignore
     return app.run(sys.argv)

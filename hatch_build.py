@@ -46,7 +46,7 @@ class CustomBuildHook(BuildHookInterface[Any]):
             file.write(f'GTK_LICENSE = "{CFG["tool"]["gtk"]["license"]}"\n')
             file.write("\n")
 
-        # generate .desktop file
+        # generate .desktop file (somewhat hacky)
         desktop_data = {
             "Desktop Entry": {
                 "Type": "Application",
@@ -60,10 +60,9 @@ class CustomBuildHook(BuildHookInterface[Any]):
             }
         }
         target = OUTPUT_DIR / f"{APP_NAME}.desktop"
-        # hacks: FDO desktop files are ~99% TOML
-        # so just bodge the output of a TOML writer
+        # bodge TOML into FDO .desktop
         fdo = tomli_w.dumps(desktop_data).replace(" = ", "=").replace('"', "")
-        print(f"Writing desktop file into: {target}")
+        print(f"Writing desktop file: {target}")
         with target.open("w") as file:
             file.write(fdo)
 
@@ -118,6 +117,7 @@ class CustomBuildHook(BuildHookInterface[Any]):
                 if file_path.suffix not in SKIP_XML_PREPROCESS
                 else {}
             )
+            print(f"GResource: {relative_path}")
             file_el = ET.SubElement(gresource_el, "file", attrib=attrib)
             file_el.text = str(relative_path)
 
@@ -127,9 +127,9 @@ class CustomBuildHook(BuildHookInterface[Any]):
             RESOURCE_DIR / "gresource.xml", encoding="utf-8", xml_declaration=True
         )
 
-        # build resource file
+        # Pack resource file
         output_resource_file = OUTPUT_DIR / f"{APP_NAME}.gresource"
-        print(f"Compiling resources into: {output_resource_file}")
+        print(f"Packing resource: {output_resource_file}")
         subprocess.run(
             [
                 "glib-compile-resources",

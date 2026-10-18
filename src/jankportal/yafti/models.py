@@ -8,13 +8,12 @@ from typing import TYPE_CHECKING, cast
 import yaml
 from gi.repository import Gio, GLib, GObject
 
+from jankportal.lib import INVALID_LIST_POSITION
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from . import types
-
-
-INVALID_LIST_POSITION = -1
 
 
 class Option(GObject.Object):
