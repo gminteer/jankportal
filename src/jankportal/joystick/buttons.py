@@ -96,12 +96,12 @@ def read_button(event: InputEvent, focus: Gtk.Widget, window: JankWindow):
             # right tigger = next viewstack page
             if not (page := window.stack.get_visible_child()):
                 return
+            # loop back to start if last page
             if not (next_page := page.get_next_sibling()):
                 if not (next_page := window.stack.get_first_child()):
                     return
-                # search results are the first page in the stack
-                next_page = next_page.get_next_sibling()
-                if not next_page:
+                # skip first page (search results)
+                if not (next_page := next_page.get_next_sibling()):
                     return
             window.stack.set_visible_child(next_page)
 
