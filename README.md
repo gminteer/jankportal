@@ -26,8 +26,8 @@ A Clone of [Bazzite Portal](https://github.com/xXJSONDeruloXx/yafti-gtk), also u
 At some point I'll start actually putting up releases, but until then:
 
 1. Clone this repo
-2. Run `./build_distrobox.sh` to assemble a distrobox with all needed dependencies installed.
-3. Run `./jankbuild.sh` to build an RPM
+2. Run `./jank_distrobox.sh` to assemble a distrobox with all needed dependencies installed.
+3. Run `./jank_build.sh` to build an RPM
 4. Use `rpm-ostree` to install the resulting RPM, and reboot.
 
 ## Built With
