@@ -4,10 +4,10 @@ import tomllib
 from pathlib import Path
 
 
-def ext_deps(deps: list[str]) -> str:
-    """Translate PEP 725 external dependencies into a space separated list
+def dnf_deps(deps: list[str]) -> str:
+    """Translate PEP 725 external deps into a space separated list
     for dnf by blindly assuming the string format is
-    'stuff/to/ignore/$packagename@>=$min_version'"""
+    `stuff/to/ignore/$packagename@>=$min_version`"""
 
     parsed = (dep.split("/")[-1].split("@>=")[0] for dep in deps)
     return " ".join(parsed)
@@ -23,10 +23,10 @@ def py_deps(deps: list[str]) -> str:
     return " ".join(parsed)
 
 
-def rpm_deps(deps: list[str]) -> str:
-    """Translate external dependencies into a space sepeated list for an
-    RPM spec file by blindly assuming the string format is
-    'stuff/to/ignore/$packagename@>=$min_version'"""
+def spec_deps(deps: list[str]) -> str:
+    """Translate PEP 725 external deps into a space sepeated list
+    for an RPM spec file by blindly assuming the string format is
+    `stuff/to/ignore/$packagename@>=$min_version`"""
 
     parsed = (dep.split("/")[-1].replace("@>=", " >= ") for dep in deps)
     return " ".join(parsed)
@@ -34,8 +34,8 @@ def rpm_deps(deps: list[str]) -> str:
 
 with Path("pyproject.toml").open("rb") as file:
     cfg = tomllib.load(file)
-    print(f"export EXTERNAL_DEPS='{ext_deps(cfg['external']['host-requires'])}'")
-    print(f"export EXTERNAL_BUILD_DEPS='{ext_deps(cfg['external']['build-requires'])}'")
+    print(f"export EXTERNAL_DEPS='{dnf_deps(cfg['external']['host-requires'])}'")
+    print(f"export EXTERNAL_BUILD_DEPS='{dnf_deps(cfg['external']['build-requires'])}'")
     print(f"export PYTHON_DEPS='{py_deps(cfg['project']['dependencies'])}'")
     print(f"export PYTHON_BUILD_DEPS='{py_deps(cfg['dependency-groups']['dev'])}'")
     print(f"export PKG_NAME='{cfg['project']['name']}'")
@@ -43,5 +43,5 @@ with Path("pyproject.toml").open("rb") as file:
     print(f"export PKG_DESCRIPTION='{cfg['tool']['rpm']['description']}'")
     print(f"export PKG_LICENSE='{cfg['project']['license']}'")
     print(f"export PKG_URL='{cfg['project']['urls']['Homepage']}'")
-    print(f"export PKG_REQUIRES='{rpm_deps(cfg['external']['host-requires'])}'")
-    print(f"export PKG_BUILD_REQUIRES='{rpm_deps(cfg['external']['build-requires'])}'")
+    print(f"export PKG_REQUIRES='{spec_deps(cfg['external']['host-requires'])}'")
+    print(f"export PKG_BUILD_REQUIRES='{spec_deps(cfg['external']['build-requires'])}'")
