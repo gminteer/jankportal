@@ -27,8 +27,8 @@ At some point I'll start actually putting up releases, but until then:
 
 1. Clone this repo
 2. Run `./jank_distrobox.sh` to assemble a distrobox with all needed dependencies installed.
-3. Run `./jank_build.sh` to build an RPM
-4. Use `rpm-ostree` to install the resulting RPM, and reboot.
+3. Run `./jank_build.sh` to build an RPM. If it works, the RPM will be in `dist/noarch`, and there will also be a source RPM, Python SDIST, and Python wheel in `dist/`.
+4. Use `rpm-ostree` to install the resulting RPM (and any needed dependencies), reboot, and enjoy the jank.
 
 ## Built With
 
