@@ -6,12 +6,13 @@ template $OSTreeDeploymentActions: ListBox {
     styles ["boxed-list", "sub-list"]
 
     Adw.SwitchRow pin {
-      title: _("Pin Deployment");
+        title: _("Pin Deployment");
     }
+
     Adw.ActionRow rebase {
-      activatable: true;
-      title: _("Rebase to this version");
-      subtitle: _("This will disable updates!");
-      styles ["destructive-action"]
+        activatable: true;
+        title: _("Rebase to this version");
+        subtitle: _("This will disable updates!");
+        styles ["destructive-action"]
     }
 }
