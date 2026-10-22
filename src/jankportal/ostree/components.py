@@ -71,6 +71,12 @@ def create_row(
 
     # Add subrows for deployment actions
     actions = DeploymentActions()
+    deployment.bind_property(
+        source_property="pinned",
+        target=actions.pin,
+        target_property="active",
+        flags=GObject.BindingFlags.SYNC_CREATE,
+    )
     actions.pin.connect("notify::active", on_pinned_active, deployment.index)
     actions.rebase.connect(
         "activated", on_rebase_activated, deployment.image, deployment.version
@@ -112,6 +118,7 @@ async def create_page(
             Gtk.DirectionType.TAB_FORWARD,
         ]:
             return deploy_list.child_focus(direction)
+
         return False
 
     def on_deploy_list_keynav_failed(
@@ -123,6 +130,7 @@ async def create_page(
             Gtk.DirectionType.TAB_BACKWARD,
         ]:
             return page.img_list.child_focus(direction)
+
         return False
 
     page = Page()
