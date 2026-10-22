@@ -49,7 +49,7 @@ VteDirectionMap = {
 
 
 def round_away(value: float):
-    """Flatten normalized float to [-1, 0, 1]"""
+    """Round normalized float away from zero"""
     return math.floor(value) if value < 0 else math.ceil(value) if value > 0 else 0
 
 
@@ -64,6 +64,7 @@ class Axis:
     @property
     def center(self):
         """Midpoint of analog axis"""
+
         if self._center is None:
             self._center = (self._min + self._max) // 2
         return self._center
