@@ -56,10 +56,13 @@ class Action(GObject.Object):
         self._selected = INVALID_LIST_POSITION
         self._status_detail = None
         self._options = Gio.ListStore(item_type=Option)
+
         if "options" not in action:
             return
+
         for option in action["options"]:
             self._options.append(Option(option, self))
+
         if "status_script" in action:
             self.refresh()
 
@@ -107,6 +110,7 @@ class Action(GObject.Object):
     def refresh(self):
         if "status_script" not in self._action:
             return
+
         self._async_task = asyncio.create_task(
             self._get_status(self._action["status_script"])
         )
@@ -126,6 +130,7 @@ class Action(GObject.Object):
             ]
         else:
             s = shlex.split(status_script)
+
         try:
             process = await asyncio.create_subprocess_exec(
                 *s, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
@@ -133,7 +138,7 @@ class Action(GObject.Object):
             stdout, stderr = await process.communicate()
             if process.returncode != 0:
                 self._status = "ERROR"
-                self._status_detail = stderr.decode()
+                self._status_detail = stderr.decode().strip()
                 self._selected = INVALID_LIST_POSITION
                 return
 

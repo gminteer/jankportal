@@ -29,19 +29,24 @@ def is_joystick(device_node: str):
     DPAD = {ecodes.ABS_HAT0X, ecodes.ABS_HAT0Y}
     LEFT_ANALOG = {ecodes.ABS_X, ecodes.ABS_Y}
     KEYS = {ecodes.BTN_SOUTH, ecodes.BTN_EAST, ecodes.BTN_START}
+
     try:
         cap = evdev.InputDevice(device_node).capabilities()
         if ecodes.EV_ABS not in cap:
             return False
+
         abs_set = {tuple[0] for tuple in cap[ecodes.EV_ABS]}
         has_direction = DPAD.issubset(abs_set) or LEFT_ANALOG.issubset(abs_set)
         if ecodes.EV_KEY not in cap:
             return False
+
         key_set = set(cap[ecodes.EV_KEY])
         has_buttons = KEYS.issubset(key_set)
         return has_direction and has_buttons
+
     except OSError, FileNotFoundError:
         pass
+
     return False
 
 
@@ -60,6 +65,7 @@ class JoystickWrangler(GObject.Object):
                 and is_joystick(device.device_node)
             ):
                 self._joysticks.append(evdev.InputDevice(device.device_node))
+
         if len(self._joysticks) < 1:
             self.window.toast("No joysticks detected")
         else:
@@ -107,6 +113,7 @@ class JoystickWrangler(GObject.Object):
                         count += 1
                         break
                 assert count == 1
+
                 if len(self._joysticks) == 0:
                     self.notify("has_joystick")
 
@@ -115,6 +122,7 @@ class JoystickWrangler(GObject.Object):
         # build analog helpers
         self.window.toast(f"Listening to '{joystick.name}' at {joystick.path}")
         dev_cap = dict(joystick.capabilities().get(ecodes.EV_ABS, []))
+
         analog_x = Axis(
             min=dev_cap[ecodes.ABS_X].min,
             max=dev_cap[ecodes.ABS_X].max,
@@ -125,14 +133,15 @@ class JoystickWrangler(GObject.Object):
             max=dev_cap[ecodes.ABS_Y].max,
             deadzone=Direction.DEADZONE,
         )
+        direction = Direction(analog_x, analog_y, self.window)
 
         scroll = Axis(
             min=dev_cap[ecodes.ABS_RY].min,
             max=dev_cap[ecodes.ABS_RY].max,
             deadzone=Scroller.DEADZONE,
         )
-        direction = Direction(analog_x, analog_y, self.window)
         scroller = Scroller(scroll, self.window)
+
         try:
             async for event in cast("evdev.InputEvent", joystick.async_read_loop()):
                 if event.type == ecodes.EV_ABS:
@@ -158,5 +167,6 @@ class JoystickWrangler(GObject.Object):
                     if not (focus := self.window.get_focus()):
                         continue
                     read_button(event, focus, self.window)
+
         except FileNotFoundError, OSError:
             pass
