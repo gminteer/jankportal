@@ -153,7 +153,7 @@ class OSTreeView:
             f"https://api.github.com/repos/ublue-os/bazzite/releases/tags/{tag}"
         )
         if response.status_code != 200:
-            self.window.warn(
+            self.window.info(
                 title=f"HTTP Error {response.status_code}", message=response.text
             )
             return

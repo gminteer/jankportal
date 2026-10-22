@@ -1,6 +1,7 @@
 """MainWindow class"""
 
 import os
+import shlex
 import sys
 from importlib.metadata import version
 from typing import TYPE_CHECKING, cast
@@ -174,7 +175,7 @@ class JankWindow(Adw.ApplicationWindow):
         """Wire up VTE contents-changed signal after script is spawned"""
 
         if error:
-            self.warn("Action Failed", error.message)
+            self.info("Action Failed", error.message)
             return
 
         self._vte_is_running = True
@@ -197,8 +198,42 @@ class JankWindow(Adw.ApplicationWindow):
         vte_done_callback: Callable[[], Any] | None = None,
     ) -> None:
         """Pass script to terminal widget"""
+
         self._vte_done_callback = vte_done_callback
         self.command_label.props.label = title
+
+        # intercept use of "yad" in scripts, convert to window.info dialog
+        if "yad" in script:
+            lines: list[str] = []
+            dlg_title = ""
+            text = ""
+            button = ""
+            for command in script.split("&&"):
+                if "yad" not in command:
+                    lines.append(command.strip())
+                    continue
+                tokens = shlex.split(command)
+                for idx, token in enumerate(tokens):
+                    if "title" in token:
+                        dlg_title = token.split("=")[1]
+                        continue
+                    if "text" in token:
+                        text = tokens[idx + 1]
+                        continue
+                    if "button" in token:
+                        button = token.split("=")[1].split("!")[0]
+                        continue
+            new_script = " && ".join(lines)
+            self.info(
+                title=dlg_title,
+                message=text,
+                button=button,
+                callback=lambda _d, _r: self.command_runner(
+                    title, new_script, vte_done_callback
+                ),
+            )
+            return
+
         self.vte.spawn_async(
             pty_flags=Vte.PtyFlags.DEFAULT,
             working_directory=os.environ.get("HOME"),
@@ -210,14 +245,20 @@ class JankWindow(Adw.ApplicationWindow):
             callback=self.on_spawn_complete,
         )
 
-    def warn(self, title: str, message: str) -> None:
+    def info(
+        self,
+        title: str,
+        message: str,
+        button: str = "OK",
+        callback: Callable[[Gtk.Widget, str], None] | None = None,
+    ) -> None:
         """Display non critical error"""
 
         dialog = Adw.AlertDialog.new(title, message)
-        dialog.add_response("ok", "OK")
+        dialog.add_response("ok", button)
         dialog.set_default_response("ok")
         dialog.set_close_response("ok")
-        dialog.choose(self, cancellable=None)
+        dialog.choose(self, cancellable=None, callback=callback)
 
     def panic(self, message: str) -> None:
         """Display critical failure and exit program"""
