@@ -129,7 +129,7 @@ class CustomBuildHook(BuildHookInterface[Any]):
 
         # Pack resource file
         output_resource_file = OUTPUT_DIR / f"{APP_NAME}.gresource"
-        print(f"Packing resource: {output_resource_file}")
+        print(f"Packing gresources: {output_resource_file}")
         subprocess.run(
             [
                 "glib-compile-resources",

@@ -95,7 +95,7 @@ artifacts = [
     "src/jankportal/assets/*",
 ]
 
-[tool.hatch.build.targets.wheel.hooks.custom]
+[tool.hatch.build.hooks.custom]
 path = "build_assets.py"
 
 [tool.uv-dynamic-versioning]
