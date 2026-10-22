@@ -98,6 +98,7 @@ class OSTreeView:
 
         self.page.img_rebase.connect("activated", self.on_img_rebase_activated)
         self.page.img_reset.connect("activated", self.on_img_reset_activated)
+        self.page.img_update.connect("activated", self.on_img_update_activated)
         self.page.image.connect("notify::selected-item", self.on_image_selected)
         self.page.tag.connect("notify::selected-item", self.on_tag_selected)
         placeholder = cast("Adw.Bin", self.window.stack.get_child_by_name("ostree"))
@@ -126,6 +127,9 @@ class OSTreeView:
     def on_img_reset_activated(self, button_row: Adw.ButtonRow):
         self.page.image.set_selected(self._image_index)
         self.page.tag.set_selected(self._tag_index)
+
+    def on_img_update_activated(self, action_row: Adw.ActionRow):
+        self.window.command_runner(title="System Update", script="ujust update")
 
     def _handle_img_action_visibility(self):
         visible = (self.image != self.selected_image) or (self.tag != self.selected_tag)

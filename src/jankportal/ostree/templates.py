@@ -43,6 +43,7 @@ class Page(Gtk.ScrolledWindow):
     img_list: Gtk.ListBox = Gtk.Template.Child()
     img_reset: Adw.ButtonRow = Gtk.Template.Child()
     img_rebase: Adw.ButtonRow = Gtk.Template.Child()
+    img_update: Adw.ActionRow = Gtk.Template.Child()
 
 
 @Gtk.Template(resource_path=f"{APP_PATH}/ui/ostree/row.ui")
