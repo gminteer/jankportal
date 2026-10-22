@@ -40,7 +40,7 @@ Gio.resources_register(resource)
 font_map = PangoCairo.FontMap.get_default()
 with resources.as_file(resources.files(CFG.APP_NAME).joinpath("assets")) as asset_path:
     schema = Gio.SettingsSchemaSource.new_from_directory(
-        str(asset_path),
+        directory=str(asset_path),
         parent=Gio.SettingsSchemaSource.get_default(),
         trusted=False,
     ).lookup(CFG.APP_ID, recursive=False)

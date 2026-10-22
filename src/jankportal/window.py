@@ -108,13 +108,13 @@ class JankWindow(Adw.ApplicationWindow):
     @Gtk.Template.Callback()
     def on_about_clicked(self, button: Gtk.Button):
         self.command_runner(
-            "About System",
-            (
+            title="About System",
+            script=(
                 "/usr/bin/fastfetch "
                 "--config /usr/share/ublue-os/bazzite/fastfetch.jsonc "
                 "--color $(/usr/libexec/bazzite-bling-fastfetch)"
             ),
-            self.keep_vte_open.activate,
+            vte_done_callback=self.keep_vte_open.activate,
         )
         about = Adw.AboutDialog(
             application_name=CFG.APP_TITLE,
