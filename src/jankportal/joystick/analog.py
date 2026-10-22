@@ -133,6 +133,7 @@ class Direction:
                     signal.cancel()
                     self._signals[i] = None
                 return
+
             if val in [-1, 1]:
                 if not signal:
                     if isinstance(focus, Vte.Terminal):

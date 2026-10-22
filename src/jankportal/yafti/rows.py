@@ -27,14 +27,17 @@ def create_emblem(type: str, description: str = ""):
             icon = Gtk.Image.new_from_icon_name("emblem-important-symbolic")
             icon.add_css_class("warning")
             icon.props.tooltip_text = "No status provided"
+
         case "NOT_A_DECK":
             icon = Gtk.Image.new_from_icon_name("dialog-information-symbolic")
             icon.add_css_class("warning")
             icon.props.tooltip_text = "For handhelds and HTPCs only"
+
         case "NOT_FOUND":
             icon = Gtk.Image.new_from_icon_name("xsi-dialog-error-symbolic")
             icon.add_css_class("error")
             icon.props.tooltip_text = f"Status command '{description}' not found"
+
         case "ERROR":
             icon = Gtk.Image.new_from_icon_name("xsi-dialog-error-symbolic")
             icon.add_css_class("error")
@@ -52,12 +55,15 @@ def on_status_changed(
     action_box: Gtk.Box | None = None,
 ):
     """Update action emblem on status change"""
+
     while (child := emblem_box.get_first_child()) is not None:
         emblem_box.remove(child)
+
     if action.status.isupper():
         emblem = create_emblem(action.status, action.status_detail or "")
         if emblem:
             emblem_box.append(emblem)
+
         if action.status == "NOT_A_DECK" and isinstance(action_box, Gtk.Box):
             action_box.props.visible = False
             # if we hide the buttons we need to make the row navigable to not make
@@ -72,16 +78,19 @@ def create_expander_row(
     callback: Callable[[Gtk.Widget, str, str, Callable[[], None] | None], None],
 ):
     """Create an ExpanderRow with ActionRows"""
+
     row = ExpanderRow(title=action.title, subtitle=action.description, name=action.name)
     emblem = create_emblem(action.status, "")
     if emblem:
         row.emblem_box.append(emblem)
+
     for option in action.options:
         option = cast("Option", option)
         option_row = Adw.ActionRow(title=option.label, name=option.name)
         option_row.props.activatable = True
         option_row.connect("activated", callback, option.label, option.script)
         row.container.append(option_row)
+
     return row
 
 
@@ -95,6 +104,7 @@ def create_dropdown_row(
         drop_down: Gtk.DropDown, g_param_spec: GObject.ParamSpec, last_status: str
     ):
         """Adapt on_row_selected event to the button style callback we received"""
+
         option = cast("Option", drop_down.get_selected_item())
         # don't fire activation event on initial status value resolution
         if last_status == "AWAITING_FUTURE" or last_status == option.parent.status:
@@ -103,7 +113,6 @@ def create_dropdown_row(
 
     row = DropDownRow(title=action.title, subtitle=action.description, name=action.name)
     align_drop_down(row.drop_down)
-
     row.drop_down.props.expression = Gtk.PropertyExpression.new(
         Option, expression=None, property_name="label"
     )
@@ -131,6 +140,7 @@ def create_button_group_row(
     emblem = create_emblem(action.status)
     if emblem:
         row.emblem_box.append(emblem)
+
     prev = None
     for index, option in enumerate(action.options):
         option = cast("Option", option)

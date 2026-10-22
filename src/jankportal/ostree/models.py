@@ -62,6 +62,7 @@ async def create_deployment_model(
     panic: Callable[[str], None],
 ) -> tuple[Gio.ListStore[Deployment], str, str]:
     """Parse rpm-ostree status into Gio.ListStore"""
+
     try:
         model = Gio.ListStore(item_type=Deployment)
         process = await asyncio.create_subprocess_exec(
