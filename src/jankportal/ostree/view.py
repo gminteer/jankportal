@@ -6,14 +6,11 @@ import gi
 import markdown
 import requests
 
-from jankportal.lib import align_drop_down
-
-from .models import Deployment, create_deployment_model, create_tag_model
-from .templates import Changelog, DeploymentActions, OverlayList, Page, Row
+from .components import create_page, create_row, search_filterlist
+from .models import Deployment, create_deployment_model
+from .templates import Changelog
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from jankportal.window import JankWindow
 
 gi.require_version("Gtk", "4.0")
@@ -24,34 +21,6 @@ from gi.repository import Adw, Gio, GObject, Gtk, WebKit  # noqa: E402
 
 # wait for gobject types or templates break
 GObject.type_ensure(WebKit.WebView.__gtype__)  # type: ignore
-
-
-IMAGES = Gtk.StringList.new(
-    [
-        "bazzite",
-        "bazzite-deck",
-        "bazzite-nvidia",
-        "bazzite-nvidia-open",
-        "bazzite-deck-nvidia",
-        "bazzite-gnome",
-        "bazzite-gnome-nvidia-open",
-        "bazzite-deck-gnome",
-        "bazzite-dx",
-        "bazzite-dx-gnome",
-        "bazzite-dx-nvidia",
-        "bazzite-dx-nvidia-gnome",
-    ]
-)
-
-
-def search_filterlist(list: Gtk.FilterListModel, val: str):
-    index = -1
-    for i in range(len(list)):
-        current = cast("Gtk.StringObject", list.get_item(i))
-        if current.props.string == val:
-            index = i
-            break
-    return index
 
 
 def wrap_html(changelog: str):
@@ -72,124 +41,6 @@ def wrap_html(changelog: str):
 </body>
 </html>
 """
-
-
-# Component builders
-def create_row(
-    deployment: Deployment,
-    on_changelog_clicked: Callable[[Gtk.Button, str], None],
-    on_pinned_active: Callable[[Adw.SwitchRow, GObject.ParamSpec, int], None],
-    on_remove_clicked: Callable[[Gtk.Button, str], None],
-    on_rebase_activated: Callable[[Adw.ActionRow, str, str], None],
-):
-    """Create expander rows for each deployment"""
-
-    row = Row()
-    row.props.title = f"{deployment.index}: Version {deployment.version}"
-    if len(deployment.overlays) > 0:
-        row.props.subtitle = f"({len(deployment.overlays)} overlaid packages)"
-
-    if deployment.booted:
-        icon = Gtk.Image.new_from_icon_name("system-shutdown-symbolic")
-        icon.add_css_class("success")
-        icon.props.tooltip_text = "Currently booted"
-        row.icon_box.append(icon)
-    elif deployment.staged:
-        icon = Gtk.Image.new_from_icon_name("system-reboot-symbolic")
-        icon.add_css_class("warning")
-        icon.props.tooltip_text = "Staged update (pending reboot)"
-        row.icon_box.append(icon)
-
-    row.changelog.connect("clicked", on_changelog_clicked, deployment.version)
-
-    # Add subrows for deployment actions
-    actions = DeploymentActions()
-    actions.pin.connect("notify::active", on_pinned_active, deployment.index)
-    actions.rebase.connect(
-        "activated", on_rebase_activated, deployment.image, deployment.version
-    )
-    row.add_row(actions)
-
-    # Add subrows for overlaid packages with remove buttons if deployment is booted
-    if len(deployment.overlays) > 0:
-        overlays = OverlayList()
-
-        for overlay in deployment.overlays:
-            overlay_row = Adw.ActionRow(title=overlay)
-            overlays.list.append(overlay_row)
-            if deployment.booted:
-                button = Gtk.Button(
-                    child=Gtk.Image.new_from_icon_name("edit-delete-symbolic"),
-                    css_classes=["action-button", "destructive-action"],
-                )
-                button.connect("clicked", on_remove_clicked, overlay)
-                overlay_row.add_suffix(button)
-
-        row.add_row(overlays)
-    return row
-
-
-async def create_page(
-    model: Gio.ListStore[Deployment],
-    current_image: str,
-    current_tag: str,
-    row_factory: Callable[[Deployment], Adw.ExpanderRow],
-    image_filter: Gtk.CustomFilter,
-    tag_filter: Gtk.CustomFilter,
-    panic: Callable[[str], None],
-):
-    def on_img_list_keynav_failed(listbox: Gtk.ListBox, direction: Gtk.DirectionType):
-        if direction in [
-            Gtk.DirectionType.DOWN,
-            Gtk.DirectionType.RIGHT,
-            Gtk.DirectionType.TAB_FORWARD,
-        ]:
-            return deploy_list.child_focus(direction)
-        return False
-
-    def on_deploy_list_keynav_failed(
-        listbox: Gtk.ListBox, direction: Gtk.DirectionType
-    ):
-        if direction in [
-            Gtk.DirectionType.UP,
-            Gtk.DirectionType.LEFT,
-            Gtk.DirectionType.TAB_BACKWARD,
-        ]:
-            return page.img_list.child_focus(direction)
-        return False
-
-    page = Page()
-    align_drop_down(page.image)
-    align_drop_down(page.tag)
-
-    # Prevent users from going off the rails
-    # (only show nvidia/gnome images if currently on a matching image)
-    image_filter_model = Gtk.FilterListModel.new(IMAGES, image_filter)
-    page.image.set_model(image_filter_model)
-    index = search_filterlist(image_filter_model, current_image)
-    if index == -1:
-        panic(f"'{current_image}' not in filtered image list!")
-    page.image.set_selected(index)
-
-    # Only show branch tags
-    tags = await create_tag_model(current_image, panic)
-    tag_filter_model = Gtk.FilterListModel.new(tags, tag_filter)
-
-    page.tag.set_model(tag_filter_model)
-    index = search_filterlist(tag_filter_model, current_tag)
-    if index == -1:
-        panic(f"'{current_tag}' not in filtered tag list!")
-    page.tag.set_selected(index)
-
-    deploy_list = Gtk.ListBox(
-        selection_mode=Gtk.SelectionMode.NONE,
-        css_classes=["boxed-list", "root-list"],
-    )
-    deploy_list.bind_model(model, row_factory)
-    page.container.append(deploy_list)
-    page.img_list.connect("keynav-failed", on_img_list_keynav_failed)
-    deploy_list.connect("keynav-failed", on_deploy_list_keynav_failed)
-    return page
 
 
 class OSTreeView:
