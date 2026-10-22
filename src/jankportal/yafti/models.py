@@ -101,6 +101,12 @@ class Action(GObject.Object):
     def default(self):
         return self._action["default"]
 
+    @GObject.Property(type=str, default="")
+    def status(self):
+        if "status_script" not in self._action:
+            return "NO_STATUS"
+        return self._status
+
     @GObject.Property(
         type=Gio.ListStore[Option], default=Gio.ListStore(item_type=Option)
     )
@@ -162,14 +168,6 @@ class Action(GObject.Object):
         finally:
             self.notify("selected")
             self.notify("status")
-
-    @GObject.Property(type=str, default="")
-    def status(self):
-        """Run status_script to determine current status, cache results"""
-
-        if "status_script" not in self._action:
-            return "NO_STATUS"
-        return self._status
 
 
 class Page(GObject.Object):

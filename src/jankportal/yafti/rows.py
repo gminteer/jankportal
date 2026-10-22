@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, GObject, Gtk  # noqa: E402
+from gi.repository import Adw, GLib, GObject, Gtk  # noqa: E402
 
 
 def create_emblem(type: str, description: str = ""):
@@ -85,7 +85,6 @@ def create_expander_row(
         row.emblem_box.append(emblem)
 
     for option in action.options:
-        option = cast("Option", option)
         option_row = Adw.ActionRow(title=option.label, name=option.name)
         option_row.props.activatable = True
         option_row.connect("activated", callback, option.label, option.script)
@@ -100,16 +99,15 @@ def create_dropdown_row(
 ):
     """Create an ActionRow with a DropDown"""
 
-    def on_row_selected(
-        drop_down: Gtk.DropDown, g_param_spec: GObject.ParamSpec, last_status: str
-    ):
+    def on_row_selected(drop_down: Gtk.DropDown, g_param_spec: GObject.ParamSpec):
         """Adapt on_row_selected event to the button style callback we received"""
 
         option = cast("Option", drop_down.get_selected_item())
-        # don't fire activation event on initial status value resolution
-        if last_status == "AWAITING_FUTURE" or last_status == option.parent.status:
-            return
         callback(drop_down, option.label, option.script, option.parent.refresh)
+
+    def deferred_connect():
+        row.drop_down.connect("notify::selected-item", on_row_selected)
+        return GLib.SOURCE_REMOVE
 
     row = DropDownRow(title=action.title, subtitle=action.description, name=action.name)
     align_drop_down(row.drop_down)
@@ -118,7 +116,8 @@ def create_dropdown_row(
     )
     row.drop_down.props.model = action.options
     row.drop_down.props.name = action.name
-    row.drop_down.connect("notify::selected-item", on_row_selected, action.status)
+    # defer connecting signal handler to avoid initialization noise
+    GLib.idle_add(deferred_connect)
     action.connect("notify::status", on_status_changed, row.emblem_box)
     action.bind_property(
         "selected", row.drop_down, "selected", GObject.BindingFlags.SYNC_CREATE
@@ -143,7 +142,6 @@ def create_button_group_row(
 
     prev = None
     for index, option in enumerate(action.options):
-        option = cast("Option", option)
         label = option.name.replace("-", " ").title()
         button = Gtk.ToggleButton(
             label=label,
