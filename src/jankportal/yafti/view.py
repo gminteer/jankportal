@@ -44,6 +44,12 @@ def create_pages(
     ]
 
     for screen in model:
+        # Append actions to everything list
+        all_actions.splice(
+            len(all_actions),
+            0,
+            [screen.actions.get_item(i) for i in range(len(all_actions))],
+        )
         page = templates.Page()
         page.description.props.label = screen.descrption
         page.action_list.bind_model(screen.actions, row_factory)
@@ -52,12 +58,6 @@ def create_pages(
         name = screen.title.lower().replace(" ", "-").replace("!", "")
         pages.append(
             {"name": name, "title": screen.title, "visible": True, "page": page}
-        )
-        # Append actions to everything list
-        all_actions.splice(
-            position=len(all_actions),
-            n_removals=0,
-            additions=[screen.actions.get_item(i) for i in range(len(screen.actions))],
         )
 
     return pages
