@@ -16,8 +16,8 @@ def dnf_deps(deps: list[str]) -> str:
 def py_deps(deps: list[str]) -> str:
     """Translate pyproject dependencies into a space separated list for
     dnf by hacking off the version and prepending 'python3-'. Also ignore
-    any package names that end in '-stubs' on the assumption they're type
-    hinting packages that only exist in PyPI"""
+    any package names with '-stubs' in the name on the assumption they're
+    type hinting packages that only exist in PyPI"""
 
     parsed = (f"python3-{dep.split('>=')[0]}" for dep in deps if "-stubs" not in dep)
     return " ".join(parsed)
