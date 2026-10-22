@@ -86,7 +86,7 @@ class Axis:
 
 class Direction:
     DEADZONE = 0.6
-    REPEAT_RATE = 0.25
+    REPEAT_RATE = 0.15
 
     def __init__(
         self,

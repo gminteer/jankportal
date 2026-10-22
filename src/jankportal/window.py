@@ -256,21 +256,21 @@ class JankWindow(Adw.ApplicationWindow):
         self.stack.add_titled(child=placeholder, name="ostree", title="Deployments")
         self._joystick_wrangler = JoystickWrangler(self)
         self._joystick_wrangler.bind_property(
-            "has_joystick",
-            self.joystick_main_nav,
-            "visible",
+            source_property="has_joystick",
+            target=self.joystick_main_nav,
+            target_property="visible",
             flags=GObject.BindingFlags.SYNC_CREATE,
         )
         self._joystick_wrangler.bind_property(
-            "has_joystick",
-            self.joystick_stack_nav,
-            "visible",
+            source_property="has_joystick",
+            target=self.joystick_stack_nav,
+            target_property="visible",
             flags=GObject.BindingFlags.SYNC_CREATE,
         )
         self._joystick_wrangler.bind_property(
-            "has_joystick",
-            self.joystick_vte_nav,
-            "visible",
+            source_property="has_joystick",
+            target=self.joystick_vte_nav,
+            target_property="visible",
             flags=GObject.BindingFlags.SYNC_CREATE,
         )
         await self.ostree_view.initialize()

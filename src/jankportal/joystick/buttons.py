@@ -16,11 +16,11 @@ gi.require_version("Vte", "3.91")
 from gi.repository import Adw, Gtk, Vte  # noqa: E402
 
 KEY_MAP = {
-    ecodes.BTN_SOUTH: b"\x0d",
-    ecodes.BTN_EAST: b"\x1b",
+    ecodes.BTN_SOUTH: b"\x0d",  # enter key
+    ecodes.BTN_EAST: b"\x1b",  # escape key
     ecodes.BTN_WEST: b"Y",
     ecodes.BTN_NORTH: b"N",
-    ecodes.BTN_SELECT: b"\x03",
+    ecodes.BTN_SELECT: b"\x03",  # ctrl-c
 }
 
 

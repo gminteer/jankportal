@@ -3,7 +3,6 @@
 import asyncio
 import sys
 from importlib import resources
-from typing import cast
 
 import gi
 from gi.events import GLibEventLoopPolicy
@@ -22,6 +21,10 @@ from gi.repository import (  # noqa: E402
     Gtk,
     PangoCairo,
 )
+
+if not (display := Gdk.Display.get_default()):
+    print("No default GDK display?!", file=sys.stderr)
+    sys.exit(1)
 
 # load resources
 resource = Gio.Resource.new_from_data(
@@ -46,10 +49,17 @@ with resources.as_file(resources.files(CFG.APP_NAME).joinpath("assets")) as asse
         font_map.add_font_file(str(font))
 
 # tell IconTheme we got an icon
-icon_theme = Gtk.IconTheme.get_for_display(
-    cast("Gdk.Display", Gdk.Display.get_default())
-)
+icon_theme = Gtk.IconTheme.get_for_display(display)
 icon_theme.add_resource_path(CFG.APP_PATH)
+
+# load CSS
+css = Gtk.CssProvider()
+css.load_from_resource(f"{CFG.APP_PATH}/css/app.css")
+Gtk.StyleContext.add_provider_for_display(
+    display=display,
+    provider=css,
+    priority=Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+)
 
 # have to load in GTK resources before importing the window
 from .window import JankWindow  # noqa: E402
@@ -69,17 +79,7 @@ class JankApplication(Adw.Application):
         del self._async_init
 
     def do_activate(self):
-        """Load CSS and main window, show main window"""
-
-        css = Gtk.CssProvider()
-        css.load_from_resource(f"{CFG.APP_PATH}/css/app.css")
-        display = Gdk.Display.get_default()
-        if display:
-            Gtk.StyleContext.add_provider_for_display(
-                display=display,
-                provider=css,
-                priority=Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-            )
+        """Show main window, kick off async init"""
 
         win = JankWindow(application=self, settings=self.settings)
 
