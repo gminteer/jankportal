@@ -15,4 +15,9 @@ template $OSTreeDeploymentActions: ListBox {
         subtitle: _("This will disable updates!");
         styles ["destructive-action"]
     }
+
+    Adw.ActionRow reset {
+        activatable: true;
+        title: _("Remove all overlaid packages");
+    }
 }

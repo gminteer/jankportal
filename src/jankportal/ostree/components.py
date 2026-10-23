@@ -48,6 +48,7 @@ def create_row(
     on_pinned_active: Callable[[Adw.SwitchRow, GObject.ParamSpec, int], None],
     on_remove_clicked: Callable[[Gtk.Button, str], None],
     on_rebase_activated: Callable[[Adw.ActionRow, str, str], None],
+    on_reset_activated: Callable[[Adw.ActionRow], None],
 ):
     """Create expander rows for each deployment"""
 
@@ -81,6 +82,13 @@ def create_row(
     actions.rebase.connect(
         "activated", on_rebase_activated, deployment.image, deployment.version
     )
+    deployment.bind_property(
+        source_property="booted",
+        target=actions.reset,
+        target_property="visible",
+        flags=GObject.BindingFlags.SYNC_CREATE,
+    )
+    actions.reset.connect("activated", on_reset_activated)
     row.add_row(actions)
 
     # Add subrows for overlaid packages with remove buttons if deployment is booted

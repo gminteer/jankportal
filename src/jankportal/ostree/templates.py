@@ -26,6 +26,7 @@ class DeploymentActions(Gtk.ListBox):
     __gtype_name__ = "OSTreeDeploymentActions"
     pin: Adw.SwitchRow = Gtk.Template.Child()
     rebase: Adw.ActionRow = Gtk.Template.Child()
+    reset: Adw.ActionRow = Gtk.Template.Child()
 
 
 @Gtk.Template(resource_path=f"{APP_PATH}/ui/ostree/overlay_list.ui")

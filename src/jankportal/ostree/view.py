@@ -74,6 +74,7 @@ class OSTreeView:
                 self.on_pinned_activated,
                 self.on_remove_clicked,
                 self.on_rebase_activated,
+                self.on_reset_activated,
             )
 
         self.model, self.image, self.tag = await create_deployment_model(
@@ -176,7 +177,7 @@ class OSTreeView:
         """Send command to remove overlaid package to window's command runner"""
 
         self.window.command_runner(
-            f"Remove {overlay}", f"rpm-ostree uninstall {overlay}"
+            title=f"Remove {overlay}", script=f"rpm-ostree uninstall {overlay}"
         )
 
     def on_pinned_activated(
@@ -188,3 +189,6 @@ class OSTreeView:
             f"{'Pin' if row.props.active else 'Unpin'} Deployment {index}",
             f"pkexec ostree admin pin {'' if row.props.active else '--unpin '} {index}",
         )
+
+    def on_reset_activated(self, row: Adw.ActionRow):
+        self.window.command_runner(title="Reset overlays", script="rpm-ostree reset")
