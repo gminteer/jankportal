@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gio, GLib, GObject, Gtk  # noqa: E402
 
+# hide yafti scripts for actions implemented natively
 ACTION_BLACKLIST = [
     "rebase-bazzite-stable",
     "rebase-bazzite-testing",

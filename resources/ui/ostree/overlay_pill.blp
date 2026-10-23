@@ -1,0 +1,19 @@
+using Gtk 4.0;
+
+template $OSTreeOverlayPill : Box {
+    orientation: horizontal;
+    styles ["overlay-pill"]
+    Label label {
+        margin-start: 8;
+        margin-end: 8;
+        margin-bottom: 8;
+        margin-top: 8;
+        label: _("");
+    }
+    Button remove_btn {
+      icon-name: "edit-delete-symbolic";
+      tooltip-text: _("Remove overlay");
+      styles ["circular", "flat", "destructive-action"]
+    }
+
+}

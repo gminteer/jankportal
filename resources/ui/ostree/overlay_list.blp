@@ -1,4 +1,5 @@
 using Gtk 4.0;
+using Adw 1;
 
 template $OSTreeOverlayList: Box {
     orientation: vertical;
@@ -9,8 +10,14 @@ template $OSTreeOverlayList: Box {
         styles ["heading"]
     }
 
-    ListBox list {
-        selection-mode: none;
-        styles ["boxed-list", "sub-list"]
+    Adw.WrapBox box {
+        margin-bottom: 4;
+        margin-top: 4;
+        child-spacing: 4;
+        line-spacing: 4;
+        justify: none;
+        align: 0.5;
+        valign: fill;
+        vexpand: true;
     }
 }

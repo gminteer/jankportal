@@ -29,10 +29,17 @@ class DeploymentActions(Gtk.ListBox):
     reset: Adw.ActionRow = Gtk.Template.Child()
 
 
+@Gtk.Template(resource_path=f"{APP_PATH}/ui/ostree/overlay_pill.ui")
+class OverlayPill(Gtk.Box):
+    __gtype_name__ = "OSTreeOverlayPill"
+    label: Gtk.Label = Gtk.Template.Child()
+    remove_btn: Gtk.Button = Gtk.Template.Child()
+
+
 @Gtk.Template(resource_path=f"{APP_PATH}/ui/ostree/overlay_list.ui")
 class OverlayList(Gtk.Box):
     __gtype_name__ = "OSTreeOverlayList"
-    list: Gtk.ListBox = Gtk.Template.Child()
+    box: Adw.WrapBox = Gtk.Template.Child()
 
 
 @Gtk.Template(resource_path=f"{APP_PATH}/ui/ostree/page.ui")

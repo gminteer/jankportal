@@ -5,7 +5,7 @@ import gi
 from jankportal.lib import align_drop_down
 
 from .models import Deployment, create_tag_model
-from .templates import DeploymentActions, OverlayList, Page, Row
+from .templates import DeploymentActions, OverlayList, OverlayPill, Page, Row
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -96,15 +96,16 @@ def create_row(
         overlays = OverlayList()
 
         for overlay in deployment.overlays:
-            overlay_row = Adw.ActionRow(title=overlay)
-            overlays.list.append(overlay_row)
-            if deployment.booted:
-                button = Gtk.Button(
-                    child=Gtk.Image.new_from_icon_name("edit-delete-symbolic"),
-                    css_classes=["action-button", "destructive-action"],
-                )
-                button.connect("clicked", on_remove_clicked, overlay)
-                overlay_row.add_suffix(button)
+            pill = OverlayPill()
+            pill.label.props.label = overlay
+            pill.remove_btn.connect("clicked", on_remove_clicked, overlay)
+            deployment.bind_property(
+                source_property="booted",
+                target=pill.remove_btn,
+                target_property="visible",
+                flags=GObject.BindingFlags.SYNC_CREATE,
+            )
+            overlays.box.append(pill)
 
         row.add_row(overlays)
     return row

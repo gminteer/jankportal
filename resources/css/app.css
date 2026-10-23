@@ -38,3 +38,10 @@
     font-family: PromptFont;
     font-size: 32px;
 }
+
+.overlay-pill {
+    border-radius: 12px;
+    padding: 2px;
+    background-color: var(--card-bg-color);
+    color: var(--card-fg-color);
+}
