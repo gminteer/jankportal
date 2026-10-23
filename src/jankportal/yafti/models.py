@@ -5,8 +5,8 @@ import shlex
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+import gi
 import yaml
-from gi.repository import Gio, GLib, GObject
 
 from jankportal.lib import INVALID_LIST_POSITION
 
@@ -14,6 +14,16 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from . import types
+
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gio, GLib, GObject, Gtk  # noqa: E402
+
+ACTION_BLACKLIST = [
+    "rebase-bazzite-stable",
+    "rebase-bazzite-testing",
+    "reset-bazzite",
+    "cancel-pending-deployment",
+]
 
 
 class Option(GObject.Object):
@@ -176,12 +186,16 @@ class Page(GObject.Object):
     __gtype_name__ = "PageModel"
 
     def __init__(self, page: types.Page):
+        def filter_func(action: Action):
+            return action.name not in ACTION_BLACKLIST
+
         super().__init__()
         self._page = page
-        actions = Gio.ListStore(item_type=Action)
+        self._actions = Gio.ListStore(item_type=Action)
         for action in self._page["actions"]:
-            actions.append(Action(action))
-        self._actions = actions
+            self._actions.append(Action(action))
+        self._filter = Gtk.CustomFilter.new(filter_func)
+        self._filter_model = Gtk.FilterListModel.new(self._actions, self._filter)
 
     @GObject.Property(type=str, default="")
     def title(self):
@@ -197,7 +211,7 @@ class Page(GObject.Object):
 
     @GObject.Property(type=Gio.ListStore, default=None)
     def actions(self):
-        return self._actions
+        return self._filter_model
 
 
 def create_model(
