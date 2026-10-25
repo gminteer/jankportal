@@ -47,21 +47,26 @@ class CustomBuildHook(BuildHookInterface[Any]):
             file.write("\n")
 
         # generate .desktop file (somewhat hacky)
-        desktop_data = {
-            "Desktop Entry": {
-                "Type": "Application",
-                "Name": APP_TITLE,
-                "Exec": APP_NAME,
-                "Comment": APP_DESCRIPTION,
-                "Icon": APP_NAME,
-                "Terminal": False,
-                "Categories": CFG["tool"]["fdo"]["desktop"]["Categories"],
-                "Keywords": CFG["tool"]["fdo"]["desktop"]["Keywords"],
-            }
-        }
         target = OUTPUT_DIR / f"{APP_NAME}.desktop"
         # bodge TOML into FDO .desktop
-        desktop_file = tomli_w.dumps(desktop_data).replace(" = ", "=").replace('"', "")
+        desktop_file = (
+            tomli_w.dumps(
+                {
+                    "Desktop Entry": {
+                        "Type": "Application",
+                        "Name": APP_TITLE,
+                        "Exec": APP_NAME,
+                        "Comment": APP_DESCRIPTION,
+                        "Icon": APP_NAME,
+                        "Terminal": False,
+                        "Categories": CFG["tool"]["fdo"]["desktop"]["Categories"],
+                        "Keywords": CFG["tool"]["fdo"]["desktop"]["Keywords"],
+                    }
+                }
+            )
+            .replace(" = ", "=")
+            .replace('"', "")
+        )
         print(f"Writing desktop file: {target}")
         with target.open("w") as file:
             file.write(desktop_file)
