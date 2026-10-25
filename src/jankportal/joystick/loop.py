@@ -144,6 +144,8 @@ class JoystickWrangler(GObject.Object):
 
         try:
             async for event in cast("evdev.InputEvent", joystick.async_read_loop()):
+                if not (focus := self.window.get_focus()):
+                    continue
                 if event.type == ecodes.EV_ABS:
                     # analog inputs
                     if event.code in [
@@ -153,19 +155,13 @@ class JoystickWrangler(GObject.Object):
                         ecodes.ABS_HAT0Y,
                     ]:
                         # X, Y, HAT0X, and HAT0Y = arrow keys
-                        if not (focus := self.window.get_focus()):
-                            continue
                         direction.update(event, focus)
                     if event.code == ecodes.ABS_RY:
                         # RY = scroll widget
-                        if not (focus := self.window.get_focus()):
-                            continue
                         scroller.update(event, focus)
 
                 elif event.type == ecodes.EV_KEY and event.value == BTN_DOWN:
                     # button presses
-                    if not (focus := self.window.get_focus()):
-                        continue
                     read_button(event, focus, self.window)
 
         except FileNotFoundError, OSError:

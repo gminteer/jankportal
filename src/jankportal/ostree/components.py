@@ -62,6 +62,7 @@ def create_row(
         icon.add_css_class("success")
         icon.props.tooltip_text = "Currently booted"
         row.icon_box.append(icon)
+
     elif deployment.staged:
         icon = Gtk.Image.new_from_icon_name("system-reboot-symbolic")
         icon.add_css_class("warning")

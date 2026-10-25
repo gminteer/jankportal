@@ -127,23 +127,24 @@ class Direction:
             case _:
                 pass
 
-        for i, val in enumerate((x, y)):
-            signal = self._signals[i]
+        for idx, val in enumerate((x, y)):
+            signal = self._signals[idx]
+
             if val == 0:
                 if signal:
                     signal.cancel()
-                    self._signals[i] = None
+                    self._signals[idx] = None
                 return
 
             if val in [-1, 1]:
                 if not signal:
                     if isinstance(focus, Vte.Terminal):
-                        self._signals[i] = asyncio.create_task(
-                            self._repeat_signal_vte(DIRECTION[i](val))
+                        self._signals[idx] = asyncio.create_task(
+                            self._repeat_signal_vte(DIRECTION[idx](val))
                         )
                     else:
-                        self._signals[i] = asyncio.create_task(
-                            self._repeat_signal_gtk(DIRECTION[i](val))
+                        self._signals[idx] = asyncio.create_task(
+                            self._repeat_signal_gtk(DIRECTION[idx](val))
                         )
                 return
 
