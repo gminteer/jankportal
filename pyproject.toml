@@ -40,6 +40,10 @@ app-id = "io.github.gminteer.jankportal"
 app-title = "Jank Portal"
 license = "GPL_3_0"
 
+[tool.fdo.desktop]
+Categories = "System;Settings"
+Keywords = "bazzite;setup;configuration;rollback"
+
 [tool.rpm]
 description = "This is a clone of Bazzite Portal with some additional features"
 
