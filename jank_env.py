@@ -34,10 +34,10 @@ def spec_deps(deps: list[str]) -> str:
 
 with Path("pyproject.toml").open("rb") as file:
     cfg = tomllib.load(file)
-    print(f"export EXTERNAL_DEPS='{dnf_deps(cfg['external']['host-requires'])}'")
-    print(f"export EXTERNAL_BUILD_DEPS='{dnf_deps(cfg['external']['build-requires'])}'")
-    print(f"export PYTHON_DEPS='{py_deps(cfg['project']['dependencies'])}'")
-    print(f"export PYTHON_BUILD_DEPS='{py_deps(cfg['dependency-groups']['dev'])}'")
+    print(f"export BOX_DEPS='{dnf_deps(cfg['external']['host-requires'])}'")
+    print(f"export BOX_BUILD_DEPS='{dnf_deps(cfg['external']['build-requires'])}'")
+    print(f"export BOX_PYTHON_DEPS='{py_deps(cfg['project']['dependencies'])}'")
+    print(f"export BOX_PYTHON_BUILD_DEPS='{py_deps(cfg['dependency-groups']['dev'])}'")
     print(f"export PKG_NAME='{cfg['project']['name']}'")
     print(f"export PKG_SUMMARY='{cfg['project']['description']}'")
     print(f"export PKG_DESCRIPTION='{cfg['tool']['rpm']['description']}'")
