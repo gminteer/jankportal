@@ -50,35 +50,20 @@ VteDirectionMap = {
 
 def round_away(value: float):
     """Round normalized float away from zero"""
+
     return math.floor(value) if value < 0 else math.ceil(value) if value > 0 else 0
 
 
 class Axis:
     def __init__(self, min: int, max: int, deadzone: float):
-        self._min = min
-        self._max = max
-        self._center = None
-        self._range = None
+        self.center = (min + max) // 2
+        self.range = max - self.center
         self._deadzone = deadzone
-
-    @property
-    def center(self):
-        """Midpoint of analog axis"""
-
-        if self._center is None:
-            self._center = (self._min + self._max) // 2
-        return self._center
-
-    @property
-    def range(self):
-        """Distance from midpoint to extents"""
-        if self._range is None:
-            self._range = self._max - self.center
-        return self._range
 
     def normalize(self, value: int) -> float:
         """Convert absolute value to float in range [-1, 1], clamp
         to zero if value falls within deadzone"""
+
         normalized = (value - self.center) / self.range
         if -self._deadzone < normalized < self._deadzone:
             normalized = 0
