@@ -31,10 +31,12 @@ def wrap_html(changelog: str):
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet"
+    <link
+        rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.9.0/github-markdown.min.css"
         integrity="sha512-Ouq1+UcR9ENXndFyd/YA9i+ETLJmX3WoaMBF/nDzdqJbipKGL/SAbkO+qjDoxfD/dhZs4ZqgR9vXkolrK77xmQ=="
-        crossorigin="anonymous" referrerpolicy="no-referrer">
+        crossorigin="anonymous" referrerpolicy="no-referrer"
+    >
 </head>
 <body class="markdown-body">
     {changelog}
@@ -158,11 +160,13 @@ class OSTreeView:
                 title=f"HTTP Error {response.status_code}", message=response.text
             )
             return
+
         changelog = wrap_html(
             markdown.markdown(
                 response.json()["body"], extensions=["extra", "codehilite"]
             )
         )
+
         dialog = Changelog()
         dialog.bar.props.subtitle = f"v{tag}"
         dialog.web_view.load_html(changelog)
@@ -185,9 +189,10 @@ class OSTreeView:
     ):
         """Send command to pin/unpin deployment to window's command runner"""
 
+        pin = row.props.active
         self.window.command_runner(
-            f"{'Pin' if row.props.active else 'Unpin'} Deployment {index}",
-            f"pkexec ostree admin pin {'' if row.props.active else '--unpin '} {index}",
+            title=f"{'Pin' if pin else 'Unpin'} Deployment {index}",
+            script=f"pkexec ostree admin pin {'' if pin else '--unpin '} {index}",
         )
 
     def on_reset_activated(self, row: Adw.ActionRow):

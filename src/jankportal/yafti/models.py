@@ -138,7 +138,7 @@ class Action(GObject.Object):
         # Kludge for protonplus status script
         # (the rest of the "scripts" work fine without bash loaded)
         if status_script.startswith("if "):
-            s = [
+            script = [
                 "bash",
                 "--noprofile",
                 "--norc",
@@ -146,11 +146,11 @@ class Action(GObject.Object):
                 status_script,
             ]
         else:
-            s = shlex.split(status_script)
+            script = shlex.split(status_script)
 
         try:
             process = await asyncio.create_subprocess_exec(
-                *s, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                *script, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
             stdout, stderr = await process.communicate()
             if process.returncode != 0:
@@ -168,12 +168,12 @@ class Action(GObject.Object):
 
         except FileNotFoundError:
             # Kludge for steamosctl only being in deck images
-            if s[0] == "steamosctl":
+            if script[0] == "steamosctl":
                 self._status = "NOT_A_DECK"
                 self._status_detail = None
             else:
                 self._status = "NOT_FOUND"
-                self._status_detail = s[0]
+                self._status_detail = script[0]
             self._selected = INVALID_LIST_POSITION
 
         finally:

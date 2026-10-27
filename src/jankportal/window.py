@@ -208,21 +208,26 @@ class JankWindow(Adw.ApplicationWindow):
             dlg_title = ""
             text = ""
             button = ""
+
             for command in script.split("&&"):
                 if "yad" not in command:
                     lines.append(command.strip())
                     continue
+
                 tokens = shlex.split(command)
                 for idx, token in enumerate(tokens):
                     if "title" in token:
                         dlg_title = token.split("=")[1]
                         continue
+
                     if "text" in token:
                         text = tokens[idx + 1]
                         continue
+
                     if "button" in token:
                         button = token.split("=")[1].split("!")[0]
                         continue
+
             new_script = " && ".join(lines)
             self.info(
                 title=dlg_title,
@@ -232,7 +237,6 @@ class JankWindow(Adw.ApplicationWindow):
                     title, new_script, vte_done_callback
                 ),
             )
-            return
 
         self.vte.spawn_async(
             pty_flags=Vte.PtyFlags.DEFAULT,

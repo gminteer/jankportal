@@ -141,7 +141,7 @@ def create_button_group_row(
         row.emblem_box.append(emblem)
 
     prev = None
-    for index, option in enumerate(action.options):
+    for idx, option in enumerate(action.options):
         label = option.name.replace("-", " ").title()
         button = Gtk.ToggleButton(
             label=label,
@@ -160,7 +160,7 @@ def create_button_group_row(
             button.set_group(prev)
         prev = button
         row.action_box.append(button)
-        if index < len(action.options) - 1:
+        if idx < len(action.options) - 1:
             row.action_box.append(
                 Gtk.Separator(
                     orientation=Gtk.Orientation.VERTICAL,

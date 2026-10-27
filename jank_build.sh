@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 eval "$(python3 jank_env.py)"
 
-PKG_VERSION=$(uvx hatch version)
+PKG_VERSION=$(distrobox enter jankbuild -- uvx hatch version)
 
 distrobox enter jankbuild -- uv build
+
 distrobox enter jankbuild -- rpmbuild\
     --define "pkg_name $PKG_NAME"\
     --define "pkg_version $PKG_VERSION"\
