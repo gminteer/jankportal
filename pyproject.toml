@@ -40,6 +40,10 @@ app-id = "io.github.gminteer.jankportal"
 app-title = "Jank Portal"
 license = "GPL_3_0"
 
+[tool.markdown-css]
+href = "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.9.0/github-markdown.min.css"
+integrity = "sha512-Ouq1+UcR9ENXndFyd/YA9i+ETLJmX3WoaMBF/nDzdqJbipKGL/SAbkO+qjDoxfD/dhZs4ZqgR9vXkolrK77xmQ=="
+
 [tool.fdo.desktop]
 Categories = "System;Settings"
 Keywords = "bazzite;setup;configuration;rollback"
@@ -99,6 +103,8 @@ artifacts = [
     "src/jankportal/assets/*",
 ]
 
+# in a world where you aren't actively developing Jank Portal
+# you can scope the build hook to target: wheel and save some compute
 [tool.hatch.build.hooks.custom]
 path = "build_assets.py"
 

@@ -20,12 +20,16 @@ class CustomBuildHook(BuildHookInterface[Any]):
     def initialize(self, version: str, build_data: dict[str, Any]):
         # setup hook environment
         CFG = self.metadata.config  # type: ignore
+
         APP_ID = cast("str", CFG["tool"]["gtk"]["app-id"])  # type: ignore
         APP_PATH = "/" + APP_ID.replace(".", "/")
+
         APP_NAME = cast("str", CFG["project"]["name"])
         APP_TITLE = cast("str", CFG["tool"]["gtk"]["app-title"])
         APP_DESCRIPTION = cast("str", CFG["project"]["description"])
+
         RESOURCE_DIR = Path("resources")
+
         OUTPUT_DIR = Path(f"src/{APP_NAME}/assets")
         OUTPUT_DIR.mkdir(exist_ok=True)
 
@@ -44,11 +48,14 @@ class CustomBuildHook(BuildHookInterface[Any]):
             file.write(f'REPOSITORY = "{CFG["project"]["urls"]["Repository"]}"\n')
             file.write(f'BUG_TRACKER = "{CFG["project"]["urls"]["Bug Tracker"]}"\n')
             file.write(f'GTK_LICENSE = "{CFG["tool"]["gtk"]["license"]}"\n')
+            file.write(f'MD_CSS_HREF = "{CFG["tool"]["markdown-css"]["href"]}"\n')
+            file.write(
+                f'MD_CSS_INTEGRITY = "{CFG["tool"]["markdown-css"]["integrity"]}"\n'
+            )
             file.write("\n")
 
         # generate .desktop file (somewhat hacky)
         target = OUTPUT_DIR / f"{APP_NAME}.desktop"
-        # bodge TOML into FDO .desktop
         desktop_file = (
             tomli_w.dumps(
                 {
@@ -64,6 +71,7 @@ class CustomBuildHook(BuildHookInterface[Any]):
                     }
                 }
             )
+            # bodge TOML into FDO .desktop
             .replace(" = ", "=")
             .replace('"', "")
         )

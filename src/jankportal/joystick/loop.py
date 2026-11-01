@@ -43,10 +43,8 @@ def is_joystick(device_node: str):
         key_set = set(cap[ecodes.EV_KEY])
         has_buttons = KEYS.issubset(key_set)
         # minimum viable joystick =
-        #   (left analog or
-        #   left d-pad) and
-        #   2 action buttons and
-        #   start button
+        #   (left analog or left d-pad) and
+        #   2 action buttons and start button
         return has_direction and has_buttons
 
     except OSError, FileNotFoundError:

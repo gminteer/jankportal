@@ -158,7 +158,7 @@ class Scroller:
         def callback(webview: WebKit.WebView, result: Any):
             # the webview gets grumpy if you don't finish javascript evals
             try:
-                _value = webview.evaluate_javascript_finish(result)
+                webview.evaluate_javascript_finish(result)
             except GLib.Error as error:
                 print(f"Something went wrong :( -- {error.message}")
 

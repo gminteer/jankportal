@@ -10,6 +10,8 @@ from .components import create_page, create_row, search_filterlist
 from .models import Deployment, create_deployment_model
 from .templates import Changelog
 
+from jankportal.assets import _config as CFG
+
 if TYPE_CHECKING:
     from jankportal.window import JankWindow
 
@@ -33,8 +35,8 @@ def wrap_html(changelog: str):
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link
         rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.9.0/github-markdown.min.css"
-        integrity="sha512-Ouq1+UcR9ENXndFyd/YA9i+ETLJmX3WoaMBF/nDzdqJbipKGL/SAbkO+qjDoxfD/dhZs4ZqgR9vXkolrK77xmQ=="
+        href="{CFG.MD_CSS_HREF}"
+        integrity="{CFG.MD_CSS_INTEGRITY}"
         crossorigin="anonymous" referrerpolicy="no-referrer"
     >
 </head>
