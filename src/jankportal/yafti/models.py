@@ -36,7 +36,7 @@ class Option(GObject.Object):
         super().__init__()
         self._option = option
         self.parent = parent
-        self.parent.connect("notify::status", lambda *_: self.notify("active"))  # type: ignore
+        self.parent.connect("notify::status", lambda *_: self.notify("active"))
 
     @GObject.Property(type=str, default="")
     def name(self):

@@ -52,8 +52,7 @@ def create_row(
 ):
     """Create expander rows for each deployment"""
 
-    row = Row()
-    row.props.title = f"{deployment.index}: Version {deployment.version}"
+    row = Row(title=f"{deployment.index}: Version {deployment.version}")
     if len(deployment.overlays) > 0:
         row.props.subtitle = f"({len(deployment.overlays)} overlaid packages)"
 

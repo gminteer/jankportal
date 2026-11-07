@@ -106,16 +106,13 @@ class JoystickWrangler(GObject.Object):
                 and device.device_node
                 and device.device_node in self._joystick_loops
             ):
-                count = 0
                 for i, joystick in enumerate(self._joysticks):
                     if joystick.path == device.device_node:
                         self.window.toast(f"Joystick '{joystick.name}' disconnected")
                         self._joystick_loops[device.device_node].cancel()
                         del self._joystick_loops[device.device_node]
                         del self._joysticks[i]
-                        count += 1
                         break
-                assert count == 1
 
                 if len(self._joysticks) == 0:
                     self.notify("has_joystick")

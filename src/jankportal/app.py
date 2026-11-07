@@ -76,6 +76,7 @@ class JankApplication(Adw.Application):
 
     def _async_cleanup(self, task: asyncio.Task[None]):
         """Drop reference to async init task"""
+
         del self._async_init
 
     def do_activate(self):

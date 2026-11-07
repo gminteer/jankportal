@@ -6,11 +6,11 @@ import gi
 import markdown
 import requests
 
+from jankportal.assets import _config as CFG
+
 from .components import create_page, create_row, search_filterlist
 from .models import Deployment, create_deployment_model
 from .templates import Changelog
-
-from jankportal.assets import _config as CFG
 
 if TYPE_CHECKING:
     from jankportal.window import JankWindow
@@ -57,14 +57,12 @@ class OSTreeView:
     async def initialize(self):
         def image_filter(image: Gtk.StringObject):
             is_current = image.props.string == self.image
-            allow_gnome = self.window.settings.get_boolean("allow-gnome")
-            allow_nvidia = self.window.settings.get_boolean("allow-nvidia")
-            match_gnome = allow_gnome or ("gnome" in image.props.string) == (
-                "gnome" in self.image
-            )
-            match_nvidia = allow_nvidia or ("nvidia" in image.props.string) == (
-                "nvidia" in self.image
-            )
+            match_gnome = self.window.settings.get_boolean("allow-gnome") or (
+                "gnome" in image.props.string
+            ) == ("gnome" in self.image)
+            match_nvidia = self.window.settings.get_boolean("allow-nvidia") or (
+                "nvidia" in image.props.string
+            ) == ("nvidia" in self.image)
             return is_current or (match_gnome and match_nvidia)
 
         def tag_filter(tag: Gtk.StringObject):

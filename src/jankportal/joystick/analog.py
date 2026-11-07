@@ -121,7 +121,7 @@ class Direction:
                     self._signals[idx] = None
                 return
 
-            if val in [-1, 1]:
+            if val in (-1, 1):
                 if not signal:
                     if isinstance(focus, Vte.Terminal):
                         self._signals[idx] = asyncio.create_task(
