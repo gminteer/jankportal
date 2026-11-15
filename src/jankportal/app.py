@@ -27,14 +27,15 @@ if not (display := Gdk.Display.get_default()):
     sys.exit(1)
 
 # load resources
-resource = Gio.Resource.new_from_data(
-    GLib.Bytes.new(
-        resources.files(CFG.APP_NAME)
-        .joinpath(f"assets/{CFG.APP_NAME}.gresource")
-        .read_bytes()
+Gio.resources_register(
+    Gio.Resource.new_from_data(
+        GLib.Bytes.new(
+            resources.files(CFG.APP_NAME)
+            .joinpath(f"assets/{CFG.APP_NAME}.gresource")
+            .read_bytes()
+        )
     )
 )
-Gio.resources_register(resource)
 
 # load fonts and settings schema
 font_map = PangoCairo.FontMap.get_default()

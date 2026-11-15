@@ -21,13 +21,13 @@ from gi.repository import GLib, Gtk, Vte, WebKit  # noqa: E402
 
 class Horizontal(Enum):
     LEFT = -1
-    HCENTER = 0
+    CENTER = 0
     RIGHT = 1
 
 
 class Vertical(Enum):
     UP = -1
-    VCENTER = 0
+    CENTER = 0
     DOWN = 1
 
 
